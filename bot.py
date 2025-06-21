@@ -12,7 +12,7 @@ dp = Dispatcher()
 
 @dp.message(Command("start"))
 async def cmd_start(message: types.Message):
-    await message.answer("Привет Детям222222!")
+    await message.answer("Привет Детям223332222!")
 
 
 async def main():
