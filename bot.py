@@ -1,10 +1,17 @@
 import asyncio
 import logging
+import os
+from dotenv import load_dotenv
 from aiogram import Bot, Dispatcher, types
 from aiogram.filters.command import Command
 
 
-logging.basicConfig(level=logging.INFO)
+
+
+load_dotenv()
+TOKEN = os.getenv("TOKEN")
+
+logging.basicConfig(TOKEN)
 
 bot = Bot(token="8056672850:AAEIwgFTrT-_LDg4ds8PYRtjsHHLC70CYdw")
 dp = Dispatcher()
