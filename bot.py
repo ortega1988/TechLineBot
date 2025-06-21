@@ -13,7 +13,7 @@ TOKEN = os.getenv("TOKEN")
 
 logging.basicConfig(TOKEN)
 
-bot = Bot(token="8056672850:AAEIwgFTrT-_LDg4ds8PYRtjsHHLC70CYdw")
+bot = Bot(token=TOKEN)
 dp = Dispatcher()
 
 
