@@ -11,7 +11,7 @@ from aiogram.filters.command import Command
 load_dotenv()
 TOKEN = os.getenv("TOKEN")
 
-logging.basicConfig(TOKEN)
+logging.basicConfig(level=logging.INFO)
 
 bot = Bot(token=TOKEN)
 dp = Dispatcher()
