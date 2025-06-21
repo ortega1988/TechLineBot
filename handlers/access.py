@@ -100,7 +100,7 @@ async def handle_area_input(message: Message, state: FSMContext):
             await message.answer("⚠️ РГКС участка не найден.")
 
 
-router.callback_query(F.data.startswith("approve:"))
+@router.callback_query(F.data.startswith("approve:"))
 async def handle_approve(callback: CallbackQuery):
     _, user_id, role_id, area = callback.data.split(":")
     user_id, role_id = int(user_id), int(role_id)
