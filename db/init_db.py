@@ -18,9 +18,14 @@ async def init_database():
                 
                 # Филиалы
                 await cur.execute("""
-                    CREATE TABLE IF NOT EXISTS branches (
-                        id TINYINT PRIMARY KEY,              
-                        name VARCHAR(100) NOT NULL           
+                    CREATE TABLE IF NOT EXISTS zones (
+                        id INT AUTO_INCREMENT PRIMARY KEY,
+                        name VARCHAR(100) NOT NULL,        -- Название района (например, Ново‑Савиновский)
+                        city VARCHAR(100) NOT NULL,        -- Город (например, Казань, Иннополис)
+                        branch_id TINYINT NOT NULL,        -- Привязка к филиалу
+                        FOREIGN KEY (branch_id) REFERENCES branches(id)
+                            ON DELETE RESTRICT
+                            ON UPDATE CASCADE
                     )
                 """)
                 
@@ -31,6 +36,22 @@ async def init_database():
                         name VARCHAR(100) NOT NULL,          
                         branch_id TINYINT NOT NULL,          
                         FOREIGN KEY (branch_id) REFERENCES branches(id)
+                    )
+                """)
+                
+                
+                # Связь района к участку
+                await cur.execute("""
+                    CREATE TABLE IF NOT EXISTS area_zones (
+                        area_id VARCHAR(10) NOT NULL,        -- Участок (например, '16.1')
+                        zone_id INT NOT NULL,                -- ID из таблицы zones
+                        PRIMARY KEY (area_id, zone_id),
+                        FOREIGN KEY (area_id) REFERENCES areas(id)
+                            ON DELETE CASCADE
+                            ON UPDATE CASCADE,
+                        FOREIGN KEY (zone_id) REFERENCES zones(id)
+                            ON DELETE CASCADE
+                            ON UPDATE CASCADE
                     )
                 """)
 
@@ -70,7 +91,7 @@ async def init_database():
                         (1, "Руководитель направления", "Расширенные права"),
                         (2, "Руководитель группы КС", "Ограниченное управление"),
                         (3, "Старший инженер", "Базовые действия"),
-                        (50, "Новчиек", "Автоматическое добавление в базу"),
+                        (50, "Новичек", "Автоматическое добавление в базу"),
                     ])
                     logger.info("🎯 Роли по умолчанию добавлены")
     except Exception as e:

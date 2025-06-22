@@ -49,3 +49,30 @@ def build_approval_keyboard(user_id: int, role_id: int, target: str) -> InlineKe
             )
         ]
     ])
+
+
+
+def get_admin_menu() -> InlineKeyboardMarkup:
+    keyboard = [
+        [InlineKeyboardButton(text="➕ ГКС", callback_data="admin:gks_menu")],
+        [InlineKeyboardButton(text="➕ Районы", callback_data="admin:zone_menu")],
+        [InlineKeyboardButton(text="↩️ Назад", callback_data="admin:back")]
+    ]
+    return InlineKeyboardMarkup(inline_keyboard=keyboard)
+
+
+def get_list_zones_menu() -> InlineKeyboardMarkup:
+    keyboard = [
+        [InlineKeyboardButton(text="➕ Добавить район", callback_data="admin:add_zone")],
+        [InlineKeyboardButton(text="↩️ Назад", callback_data="admin_panel")]
+    ]
+    return InlineKeyboardMarkup(inline_keyboard=keyboard)
+
+
+
+def get_list_gks_menu() -> InlineKeyboardMarkup:
+    keyboard = [
+        [InlineKeyboardButton(text="➕ Добавить ГКС", callback_data="admin:add_gks")],
+        [InlineKeyboardButton(text="↩️ Назад", callback_data="admin:gks_menu")]
+    ]
+    return InlineKeyboardMarkup(inline_keyboard=keyboard)
