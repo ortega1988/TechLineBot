@@ -78,6 +78,32 @@ async def init_database():
                     )
                 """)
                 
+                    # Таблица домов
+                await cur.execute("""
+                    CREATE TABLE IF NOT EXISTS `Hause` (
+                        `id`            INT             NOT NULL AUTO_INCREMENT,
+                        `area_id`       VARCHAR(10)     NOT NULL,
+                        `zone_id`       INT             NOT NULL,
+                        `street`        VARCHAR(255)    NOT NULL,
+                        `house_number`  VARCHAR(20)     NOT NULL,
+                        `entrances`     TINYINT UNSIGNED NOT NULL,
+                        `floors`        TINYINT UNSIGNED NOT NULL,
+                        `is_in_gks`     TINYINT(1)      NOT NULL DEFAULT 0 COMMENT '1 – в ведении ГКС, 0 – нет',
+                        `created_at`    DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                        `updated_at`    DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                        `created_by`    BIGINT          NOT NULL,
+                        `updated_by`    BIGINT          NOT NULL,
+                        PRIMARY KEY (`id`),
+                        UNIQUE KEY `uk_house` (`area_id`, `street`, `house_number`),
+                        KEY `ix_zone` (`zone_id`),
+                        FOREIGN KEY (`area_id`)    REFERENCES areas(id)   ON DELETE RESTRICT ON UPDATE CASCADE,
+                        FOREIGN KEY (`zone_id`)    REFERENCES zones(id)   ON DELETE RESTRICT ON UPDATE CASCADE,
+                        FOREIGN KEY (`created_by`) REFERENCES users(id)   ON DELETE RESTRICT ON UPDATE CASCADE,
+                        FOREIGN KEY (`updated_by`) REFERENCES users(id)   ON DELETE RESTRICT ON UPDATE CASCADE
+                    )
+                """)
+
+                
                 logger.info("🧱 Таблицы проверены/созданы")
 
                 # Роли

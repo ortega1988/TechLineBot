@@ -73,6 +73,6 @@ def get_list_zones_menu() -> InlineKeyboardMarkup:
 def get_list_gks_menu() -> InlineKeyboardMarkup:
     keyboard = [
         [InlineKeyboardButton(text="➕ Добавить ГКС", callback_data="admin:add_gks")],
-        [InlineKeyboardButton(text="↩️ Назад", callback_data="admin:gks_menu")]
+        [InlineKeyboardButton(text="↩️ Назад", callback_data="admin_panel")]
     ]
     return InlineKeyboardMarkup(inline_keyboard=keyboard)
