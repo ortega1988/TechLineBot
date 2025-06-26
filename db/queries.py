@@ -2,6 +2,10 @@ from db.db import db
 
 
 NEWBIE_ROLE_ID = 50
+SUPER_ADMIN_ROLE_ID = 0
+RN_ROLE_ID = 1
+RGKS_ROLE_ID = 2
+SI_ROLE_ID = 3
 
 async def get_user(tg_id: int) -> dict | None:
     """Получить пользователя по Telegram ID."""
@@ -27,3 +31,61 @@ async def get_role_name(role_id: int) -> str | None:
         (role_id,)
     )
     return row["name"] if row else None
+
+
+async def get_user_by_id(user_id: int) -> dict | None:
+    """Получить пользователя по Telegram ID."""
+    return await db.fetchone(
+        "SELECT * FROM users WHERE id = %s",
+        (user_id,)
+    )
+
+async def branch_exists(branch_id: str) -> bool:
+    """Проверить, существует ли филиал."""
+    row = await db.fetchone(
+        "SELECT id FROM branches WHERE id = %s",
+        (branch_id,)
+    )
+    return bool(row)
+
+async def area_exists(area_id: str) -> bool:
+    """Проверить, существует ли участок."""
+    row = await db.fetchone(
+        "SELECT id FROM areas WHERE id = %s",
+        (area_id,)
+    )
+    return bool(row)
+
+async def get_super_admin() -> dict | None:
+    """Получить пользователя-суперадмина (role_id = 0)."""
+    return await db.fetchone(
+        "SELECT id FROM users WHERE role_id = %s",
+        (SUPER_ADMIN_ROLE_ID,)
+    )
+
+async def get_rn_by_branch(branch_id: str) -> dict | None:
+    """Получить РН по номеру филиала."""
+    return await db.fetchone(
+        "SELECT id FROM users WHERE branch_id = %s AND role_id = %s",
+        (branch_id, RN_ROLE_ID)
+    )
+
+async def get_rgks_by_area(area_id: str) -> dict | None:
+    """Получить РГКС по номеру участка."""
+    return await db.fetchone(
+        "SELECT id FROM users WHERE area_id = %s AND role_id = %s",
+        (area_id, RGKS_ROLE_ID)
+    )
+
+async def update_user_role_area(user_id: int, role_id: int, area_id: str) -> None:
+    """Обновить роль, участок/филиал и включить пользователя."""
+    await db.execute(
+        """
+        UPDATE users
+        SET role_id   = %s,
+            area_id   = %s,
+            is_active = TRUE
+        WHERE id = %s
+        """,
+        (role_id, area_id, user_id)
+    )
