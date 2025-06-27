@@ -1,16 +1,19 @@
 from aiogram import Router, F
 from aiogram.types import CallbackQuery, Message
-from fsm.states import AddZoneFSM
-from keyboards.inline import get_list_zones_menu
 from aiogram.fsm.context import FSMContext
 
-from db.db import db
+from fsm.states import AddZoneFSM
+from keyboards.inline import get_list_zones_menu
+from db.queries import get_zone_id_by_name_and_city, link_area_with_zone, insert_zone
 
 router = Router()
 
 @router.callback_query(F.data == "admin:zone_menu")
 async def open_zone_menu(callback: CallbackQuery):
-    await callback.message.edit_text("🛠 Меню администрирования:", reply_markup=get_list_zones_menu())
+    await callback.message.edit_text(
+        "🛠 Меню администрирования:",
+        reply_markup=get_list_zones_menu()
+    )
 
 @router.callback_query(F.data == "admin:add_zone")
 async def admin_add_zone(callback: CallbackQuery, state: FSMContext):
@@ -32,9 +35,8 @@ async def input_zone(message: Message, state: FSMContext):
 @router.message(AddZoneFSM.waiting_region)
 async def input_region(message: Message, state: FSMContext):
     await state.update_data(city=message.text.strip())
-    await message.answer("Введите регион:")
+    await message.answer("Введите регион (номер филиала):")
     await state.set_state(AddZoneFSM.waiting_city)
-
 
 @router.message(AddZoneFSM.waiting_city)
 async def input_city(message: Message, state: FSMContext):
@@ -44,14 +46,19 @@ async def input_city(message: Message, state: FSMContext):
     city = data["city"]
     region = message.text.strip()
 
-    # Проверка и добавление района
-    zone = await db.fetchone("SELECT id FROM zones WHERE name = %s AND city = %s", (zone_name, city))
+    # Проверяем существование зоны
+    zone = await get_zone_id_by_name_and_city(zone_name, city)
+
     if not zone:
-        await db.execute("INSERT INTO zones (name, city, branch_id) VALUES (%s, %s, %s)", (zone_name, city, region))
-        zone = await db.fetchone("SELECT id FROM zones WHERE name = %s AND city = %s", (zone_name, city))
+        await insert_zone(zone_name, city, region)
+        zone = await get_zone_id_by_name_and_city(zone_name, city)
+        if not zone:
+            return
 
-    # Привязка района к участку
-    await db.execute("INSERT IGNORE INTO area_zones (area_id, zone_id) VALUES (%s, %s)", (area, zone["id"]))
+    # Привязываем зону к участку
+    await link_area_with_zone(area, zone["id"])
 
-    await message.answer(f"✅ Район <b>{zone_name}</b> ({city}) добавлен к участку <b>{area}</b>.")
+    await message.answer(
+        f"✅ Район <b>{zone_name}</b> ({city}) добавлен к участку <b>{area}</b>."
+    )
     await state.clear()

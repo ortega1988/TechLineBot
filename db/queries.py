@@ -7,6 +7,7 @@ RN_ROLE_ID = 1
 RGKS_ROLE_ID = 2
 SI_ROLE_ID = 3
 
+
 async def get_user(tg_id: int) -> dict | None:
     """Получить пользователя по Telegram ID."""
     return await db.fetchone(
@@ -31,6 +32,11 @@ async def get_role_name(role_id: int) -> str | None:
         (role_id,)
     )
     return row["name"] if row else None
+
+
+# =============================
+# ==== Работа с ДОСТУПОМ ======
+# =============================
 
 
 async def get_user_by_id(user_id: int) -> dict | None:
@@ -88,4 +94,43 @@ async def update_user_role_area(user_id: int, role_id: int, area_id: str) -> Non
         WHERE id = %s
         """,
         (role_id, area_id, user_id)
+    )
+
+
+# =============================
+# ==== Работа с ЗОНАМИ ========
+# =============================
+
+async def get_zone_id_by_name_and_city(name: str, city: str) -> dict | None:
+    """Получить зону по имени и городу."""
+    return await db.fetchone(
+        "SELECT id FROM zones WHERE name = %s AND city = %s",
+        (name, city)
+    )
+
+async def insert_zone(name: str, city: str, branch_id: str) -> None:
+    """Добавить новую зону."""
+    await db.execute(
+        "INSERT INTO zones (name, city, branch_id) VALUES (%s, %s, %s)",
+        (name, city, branch_id)
+    )
+
+async def link_area_with_zone(area_id: str, zone_id: int) -> None:
+    """Привязать участок к зоне."""
+    await db.execute(
+        "INSERT IGNORE INTO area_zones (area_id, zone_id) VALUES (%s, %s)",
+        (area_id, zone_id)
+    )
+
+
+# =============================
+# ==== Работа с ГКС (участками)
+# =============================
+
+
+async def insert_area(area_id: str, name: str, branch_id: str) -> None:
+    """Добавить участок (ГКС)."""
+    await db.execute(
+        "INSERT INTO areas (id, name, branch_id) VALUES (%s, %s, %s)",
+        (area_id, name, branch_id)
     )

@@ -16,6 +16,14 @@ async def init_database():
                     )
                 """)
                 
+                # Таблица филиалов
+                await cur.execute("""
+                    CREATE TABLE IF NOT EXISTS branches (
+                        id TINYINT PRIMARY KEY,
+                        name VARCHAR(100) NOT NULL
+                    )
+                """)
+                
                 # Филиалы
                 await cur.execute("""
                     CREATE TABLE IF NOT EXISTS zones (
@@ -80,26 +88,100 @@ async def init_database():
                 
                     # Таблица домов
                 await cur.execute("""
-                    CREATE TABLE IF NOT EXISTS `Hause` (
-                        `id`            INT             NOT NULL AUTO_INCREMENT,
-                        `area_id`       VARCHAR(10)     NOT NULL,
-                        `zone_id`       INT             NOT NULL,
-                        `street`        VARCHAR(255)    NOT NULL,
-                        `house_number`  VARCHAR(20)     NOT NULL,
-                        `entrances`     TINYINT UNSIGNED NOT NULL,
-                        `floors`        TINYINT UNSIGNED NOT NULL,
-                        `is_in_gks`     TINYINT(1)      NOT NULL DEFAULT 0 COMMENT '1 – в ведении ГКС, 0 – нет',
-                        `created_at`    DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP,
-                        `updated_at`    DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-                        `created_by`    BIGINT          NOT NULL,
-                        `updated_by`    BIGINT          NOT NULL,
-                        PRIMARY KEY (`id`),
-                        UNIQUE KEY `uk_house` (`area_id`, `street`, `house_number`),
-                        KEY `ix_zone` (`zone_id`),
-                        FOREIGN KEY (`area_id`)    REFERENCES areas(id)   ON DELETE RESTRICT ON UPDATE CASCADE,
-                        FOREIGN KEY (`zone_id`)    REFERENCES zones(id)   ON DELETE RESTRICT ON UPDATE CASCADE,
-                        FOREIGN KEY (`created_by`) REFERENCES users(id)   ON DELETE RESTRICT ON UPDATE CASCADE,
-                        FOREIGN KEY (`updated_by`) REFERENCES users(id)   ON DELETE RESTRICT ON UPDATE CASCADE
+                    CREATE TABLE IF NOT EXISTS houses (
+                        id             INT             NOT NULL AUTO_INCREMENT,
+                        area_id        VARCHAR(10)     NOT NULL,
+                        zone_id        INT             NOT NULL,
+                        street         VARCHAR(255)    NOT NULL,
+                        house_number   VARCHAR(50)     NOT NULL,
+                        entrances      TINYINT UNSIGNED NOT NULL,
+                        floors         TINYINT UNSIGNED NOT NULL,
+                        is_in_gks      TINYINT(1)      NOT NULL DEFAULT 0 COMMENT '1 — в ведении ГКС, 0 — нет',
+                        is_active      TINYINT(1)      NOT NULL DEFAULT 1 COMMENT '1 — активен, 0 — архив',
+                        notes          TEXT,
+                        created_at     DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                        updated_at     DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                        created_by     BIGINT          NOT NULL,
+                        updated_by     BIGINT          NOT NULL,
+
+                        PRIMARY KEY (id),
+                        UNIQUE KEY uk_house (area_id, street, house_number),
+
+                        KEY ix_zone (zone_id),
+                        KEY ix_street (street),
+
+                        FOREIGN KEY (area_id)    REFERENCES areas(id)   ON DELETE RESTRICT ON UPDATE CASCADE,
+                        FOREIGN KEY (zone_id)    REFERENCES zones(id)   ON DELETE RESTRICT ON UPDATE CASCADE,
+                        FOREIGN KEY (created_by) REFERENCES users(id)   ON DELETE RESTRICT ON UPDATE CASCADE,
+                        FOREIGN KEY (updated_by) REFERENCES users(id)   ON DELETE RESTRICT ON UPDATE CASCADE
+                    )
+                """)
+                
+                
+                    # Таблица подъездов
+                await cur.execute("""
+                    CREATE TABLE IF NOT EXISTS house_entrances (
+                        id              INT             NOT NULL AUTO_INCREMENT,
+                        house_id        INT             NOT NULL,
+                        entrance_number SMALLINT        NOT NULL,
+                        floors          TINYINT UNSIGNED,
+                        is_active       TINYINT(1)      NOT NULL DEFAULT 1 COMMENT '1 — активен, 0 — архив',
+                        notes           TEXT,
+
+                        created_at      DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                        updated_at      DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                        created_by      BIGINT          NOT NULL,
+                        updated_by      BIGINT          NOT NULL,
+
+                        PRIMARY KEY (id),
+                        UNIQUE KEY uk_entrance (house_id, entrance_number),
+
+                        FOREIGN KEY (house_id)    REFERENCES houses(id)    ON DELETE CASCADE ON UPDATE CASCADE,
+                        FOREIGN KEY (created_by)  REFERENCES users(id)     ON DELETE RESTRICT ON UPDATE CASCADE,
+                        FOREIGN KEY (updated_by)  REFERENCES users(id)     ON DELETE RESTRICT ON UPDATE CASCADE
+                    )
+                """)
+                
+                
+                    # Таблица оборудование подъездов
+                await cur.execute("""
+                    CREATE TABLE IF NOT EXISTS entrance_equipment (
+                        id              INT             NOT NULL AUTO_INCREMENT,
+                        entrance_id     INT             NOT NULL,
+                        type            VARCHAR(100)    NOT NULL,
+                        model           VARCHAR(100),
+                        serial_number   VARCHAR(100),
+                        status          VARCHAR(50)     DEFAULT 'Работает',
+                        installed_at    DATETIME,
+                        notes           TEXT,
+
+                        created_at      DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                        updated_at      DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                        created_by      BIGINT          NOT NULL,
+                        updated_by      BIGINT          NOT NULL,
+
+                        PRIMARY KEY (id),
+                        FOREIGN KEY (entrance_id) REFERENCES house_entrances(id) ON DELETE CASCADE ON UPDATE CASCADE,
+                        FOREIGN KEY (created_by)  REFERENCES users(id)           ON DELETE RESTRICT ON UPDATE CASCADE,
+                        FOREIGN KEY (updated_by)  REFERENCES users(id)           ON DELETE RESTRICT ON UPDATE CASCADE
+                    )
+                """)
+                
+                
+                    # фото подъездов
+                await cur.execute("""
+                    CREATE TABLE IF NOT EXISTS entrance_photos (
+                        id              INT             NOT NULL AUTO_INCREMENT,
+                        entrance_id     INT             NOT NULL,
+                        url             VARCHAR(500)    NOT NULL,
+                        description     VARCHAR(255),
+
+                        uploaded_at     DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                        created_by      BIGINT          NOT NULL,
+
+                        PRIMARY KEY (id),
+                        FOREIGN KEY (entrance_id) REFERENCES house_entrances(id) ON DELETE CASCADE ON UPDATE CASCADE,
+                        FOREIGN KEY (created_by)  REFERENCES users(id)           ON DELETE RESTRICT ON UPDATE CASCADE
                     )
                 """)
 
