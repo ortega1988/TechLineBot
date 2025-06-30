@@ -1,9 +1,9 @@
 name: Deploy to Windows Server
 
 on:
-  push:
-    branches:
-      - main  # Можно заменить на свою ветку
+    push:
+        branches:
+        - main  # Можно заменить на свою ветку
 
 jobs:
   deploy:
