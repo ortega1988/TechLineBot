@@ -15,6 +15,7 @@ bot = Bot(
     default=DefaultBotProperties(parse_mode=ParseMode.HTML)
 )
 
+
 dp = Dispatcher()
 register_all_routers(dp)
 

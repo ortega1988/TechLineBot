@@ -1,10 +1,10 @@
-name: Test SSH
+name: Test Git Pull
 
 on:
-  workflow_dispatch:
+  workflow_dispatch:  # Запуск вручную из интерфейса GitHub
 
 jobs:
-  test-ssh:
+  test-git-pull:
     runs-on: ubuntu-latest
 
     steps:
@@ -13,6 +13,9 @@ jobs:
       with:
         ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
 
-    - name: Test SSH connection
+    - name: Run git pull on server
       run: |
-        ssh -v -o StrictHostKeyChecking=no -p ${{ secrets.SSH_PORT }} ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "echo 'SSH Connected'"
+        ssh -o StrictHostKeyChecking=no -p ${{ secrets.SSH_PORT }} ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "
+          cd C:/Users/Beeline/Desktop/TechLineBot/TechLineBot && \
+          git pull
+        "
