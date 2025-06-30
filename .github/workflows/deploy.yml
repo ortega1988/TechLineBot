@@ -1,28 +1,18 @@
-name: Deploy to Windows Server
+name: Test SSH
 
 on:
-  push:
-    branches:
-      - main 
+  workflow_dispatch:
 
 jobs:
-  deploy:
+  test-ssh:
     runs-on: ubuntu-latest
 
     steps:
-    - name: Checkout repository
-      uses: actions/checkout@v3
-
     - name: Setup SSH
       uses: webfactory/ssh-agent@v0.9.0
       with:
         ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
 
-    - name: Deploy to Windows server
+    - name: Test SSH connection
       run: |
-        ssh -o StrictHostKeyChecking=no -p ${{ secrets.SSH_PORT }} ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "
-          cd C:/Users/Beeline/Desktop/TechLineBot/TechLineBot && \
-          git pull && \
-          taskkill /IM python.exe /F && \
-          start python bot.py
-        "
+        ssh -v -o StrictHostKeyChecking=no -p ${{ secrets.SSH_PORT }} ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "echo 'SSH Connected'"
