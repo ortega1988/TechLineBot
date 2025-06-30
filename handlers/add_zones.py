@@ -59,7 +59,6 @@ async def input_city(message: Message, state: FSMContext):
     region = message.text.strip()
 
     async with async_session() as session:
-        # Проверяем существование зоны
         zone = await get_zone_by_name_and_city(session, zone_name, city)
 
         if not zone:
@@ -70,7 +69,6 @@ async def input_city(message: Message, state: FSMContext):
                 branch_id=int(region)
             )
 
-        # Привязываем зону к участку
         await link_area_with_zone(
             session=session,
             area_id=area,
