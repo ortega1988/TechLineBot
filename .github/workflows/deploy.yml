@@ -1,9 +1,9 @@
 name: Deploy to Windows Server
 
 on:
-    push:
-        branches:
-        - main  # Можно заменить на свою ветку
+  push:
+    branches:
+      - main 
 
 jobs:
   deploy:
@@ -18,12 +18,11 @@ jobs:
       with:
         ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
 
-    - name: Deploy to server
+    - name: Deploy to Windows server
       run: |
         ssh -o StrictHostKeyChecking=no -p ${{ secrets.SSH_PORT }} ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} powershell -Command "
-          cd C:\Users\Beeline\Desktop\TechLineBot;
+          cd 'C:\Users\Beeline\Desktop\TechLineBot\TechLineBot';
           git pull;
-          pip install -r requirements.txt;
           Stop-Process -Name python -Force -ErrorAction SilentlyContinue;
-          Start-Process -FilePath 'python' -ArgumentList 'bot.py' -NoNewWindow -WorkingDirectory C:\Users\Beeline\Desktop\TechLineBot
+          Start-Process -FilePath 'python' -ArgumentList 'bot.py' -NoNewWindow -WorkingDirectory 'C:\Users\Beeline\Desktop\TechLineBot\TechLineBot'
         "
