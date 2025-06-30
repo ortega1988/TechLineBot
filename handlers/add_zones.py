@@ -4,9 +4,16 @@ from aiogram.fsm.context import FSMContext
 
 from fsm.states import AddZoneFSM
 from keyboards.inline import get_list_zones_menu
-from db.queries import get_zone_id_by_name_and_city, link_area_with_zone, insert_zone
+from db.db import async_session
+from db.crud.zones import (
+    get_zone_by_name_and_city,
+    create_zone,
+    link_area_with_zone
+)
+
 
 router = Router()
+
 
 @router.callback_query(F.data == "admin:zone_menu")
 async def open_zone_menu(callback: CallbackQuery):
@@ -15,10 +22,12 @@ async def open_zone_menu(callback: CallbackQuery):
         reply_markup=get_list_zones_menu()
     )
 
+
 @router.callback_query(F.data == "admin:add_zone")
 async def admin_add_zone(callback: CallbackQuery, state: FSMContext):
     await callback.message.edit_text("Введите номер участка:")
     await state.set_state(AddZoneFSM.waiting_area)
+
 
 @router.message(AddZoneFSM.waiting_area)
 async def input_area(message: Message, state: FSMContext):
@@ -26,17 +35,20 @@ async def input_area(message: Message, state: FSMContext):
     await message.answer("Введите название района:")
     await state.set_state(AddZoneFSM.waiting_zone_name)
 
+
 @router.message(AddZoneFSM.waiting_zone_name)
 async def input_zone(message: Message, state: FSMContext):
     await state.update_data(zone_name=message.text.strip())
     await message.answer("Введите город:")
     await state.set_state(AddZoneFSM.waiting_region)
 
+
 @router.message(AddZoneFSM.waiting_region)
 async def input_region(message: Message, state: FSMContext):
     await state.update_data(city=message.text.strip())
     await message.answer("Введите регион (номер филиала):")
     await state.set_state(AddZoneFSM.waiting_city)
+
 
 @router.message(AddZoneFSM.waiting_city)
 async def input_city(message: Message, state: FSMContext):
@@ -46,17 +58,24 @@ async def input_city(message: Message, state: FSMContext):
     city = data["city"]
     region = message.text.strip()
 
-    # Проверяем существование зоны
-    zone = await get_zone_id_by_name_and_city(zone_name, city)
+    async with async_session() as session:
+        # Проверяем существование зоны
+        zone = await get_zone_by_name_and_city(session, zone_name, city)
 
-    if not zone:
-        await insert_zone(zone_name, city, region)
-        zone = await get_zone_id_by_name_and_city(zone_name, city)
         if not zone:
-            return
+            zone = await create_zone(
+                session=session,
+                name=zone_name,
+                city=city,
+                branch_id=int(region)
+            )
 
-    # Привязываем зону к участку
-    await link_area_with_zone(area, zone["id"])
+        # Привязываем зону к участку
+        await link_area_with_zone(
+            session=session,
+            area_id=area,
+            zone_id=zone.id
+        )
 
     await message.answer(
         f"✅ Район <b>{zone_name}</b> ({city}) добавлен к участку <b>{area}</b>."

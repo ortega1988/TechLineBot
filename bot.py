@@ -5,8 +5,6 @@ from aiogram.types import Message
 from aiogram.client.default import DefaultBotProperties
 import asyncio
 from config import *
-from db.db import db
-from db.init_db import init_database
 
 
 from handlers import register_all_routers
@@ -23,8 +21,6 @@ register_all_routers(dp)
 
 async def main():
     logger.info("Запускаем TechLineBot...")
-    await db.connect()
-    await init_database()
     await dp.start_polling(bot)
 
 if __name__ == "__main__":

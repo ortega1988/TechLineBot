@@ -16,3 +16,8 @@ class AddGKSFSM(StatesGroup):
     waiting_id = State()
     waiting_name = State()
     waiting_region = State()
+
+
+class FindHouseFSM(StatesGroup):
+    waiting_for_address = State()
+    confirming_add = State()

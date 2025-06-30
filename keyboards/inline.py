@@ -16,9 +16,13 @@ def build_main_menu(role_id: int) -> InlineKeyboardMarkup:
     buttons = []
 
     # Общие кнопки
-    buttons.append([
-        InlineKeyboardButton(text="📋 Меню", callback_data="user_menu")
-    ])
+    buttons.append(
+        [InlineKeyboardButton(text="📋 Меню", callback_data="user_menu")],
+        )
+    buttons.append(
+        [InlineKeyboardButton(text="🔍 Поиск дома", callback_data="find_house")],
+        )
+    
 
     # Админские кнопки (роль < 3)
     if role_id < 3:
@@ -74,5 +78,15 @@ def get_list_gks_menu() -> InlineKeyboardMarkup:
     keyboard = [
         [InlineKeyboardButton(text="➕ Добавить ГКС", callback_data="admin:add_gks")],
         [InlineKeyboardButton(text="↩️ Назад", callback_data="admin_panel")]
+    ]
+    return InlineKeyboardMarkup(inline_keyboard=keyboard)
+
+
+def get_confirm_add_keyboard() -> InlineKeyboardMarkup:
+    keyboard = [
+        [
+            InlineKeyboardButton(text="✅ Добавить в базу", callback_data="confirm_add_house"),
+            InlineKeyboardButton(text="❌ Отмена", callback_data="cancel_add_house"),
+        ]
     ]
     return InlineKeyboardMarkup(inline_keyboard=keyboard)

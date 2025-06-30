@@ -1,28 +1,31 @@
-# access.py
 from aiogram import Router, F
 from aiogram.types import CallbackQuery, Message
 from aiogram.fsm.context import FSMContext
 
 from fsm.states import AccessRequest
-from db.queries import (
+from keyboards.inline import select_role_keyboard, build_approval_keyboard
+from utils.messages import build_access_request_message
+
+from db.db import async_session
+from db.crud.users import (
     get_user_by_id,
-    branch_exists,
-    area_exists,
     get_super_admin,
     get_rn_by_branch,
     get_rgks_by_area,
-    update_user_role_area,
+    set_user_role
 )
-from keyboards.inline import select_role_keyboard, build_approval_keyboard
-from utils.messages import build_access_request_message
+from db.crud.areas import get_area_by_id
+from db.crud.branches import get_branch_by_id
+
 
 router = Router()
 
 ROLES = {
-    "role_rn": 1,
-    "role_rgks": 2,
-    "role_si": 3,
+    "role_rn": 1,     # Руководитель направления
+    "role_rgks": 2,   # Руководитель группы КС
+    "role_si": 3      # Старший инженер
 }
+
 
 @router.callback_query(F.data == "request_access")
 async def start_access(callback: CallbackQuery, state: FSMContext):
@@ -32,6 +35,7 @@ async def start_access(callback: CallbackQuery, state: FSMContext):
         reply_markup=select_role_keyboard()
     )
     await callback.answer()
+
 
 @router.callback_query(F.data.in_(ROLES.keys()))
 async def handle_role_selection(callback: CallbackQuery, state: FSMContext):
@@ -44,78 +48,91 @@ async def handle_role_selection(callback: CallbackQuery, state: FSMContext):
     )
     await callback.answer()
 
+
 @router.message(AccessRequest.entering_area)
 async def handle_area_input(message: Message, state: FSMContext):
     data = await state.get_data()
     role_id = data["role_id"]
-    user = await get_user_by_id(message.from_user.id)
-    await state.clear()
-    if user is None:
-        await message.answer("❌ Ошибка: ваш аккаунт не найден в базе данных. Пожалуйста, зарегистрируйтесь.")
-        return
 
-    area_input = message.text.strip()
+    async with async_session() as session:
+        user = await get_user_by_id(session, message.from_user.id)
+        await state.clear()
 
-    # Запрос от РН (role_id = 1) → супер-админ
-    if role_id == ROLES["role_rn"]:
-        if not await branch_exists(area_input):
-            await message.answer("❌ Филиал не найден.")
+        if user is None:
+            await message.answer(
+                "❌ Ошибка: ваш аккаунт не найден в базе данных. Пожалуйста, зарегистрируйтесь."
+            )
             return
 
-        admin = await get_super_admin()
-        if admin:
-            await message.bot.send_message(
-                chat_id=admin["id"],
-                text=build_access_request_message(user, "РН", area_input),
-                reply_markup=build_approval_keyboard(user["id"], role_id, area_input)
-            )
-            await message.answer("✅ Запрос отправлен администратору.")
-        else:
-            await message.answer("⚠️ Главный администратор не найден.")
+        area_input = message.text.strip()
 
-    # Запрос от РГКС (role_id = 2) → РН
-    elif role_id == ROLES["role_rgks"]:
-        if not await area_exists(area_input):
-            await message.answer("❌ Участок не найден.")
-            return
+        # Запрос от РН → супер-админ
+        if role_id == ROLES["role_rn"]:
+            branch = await get_branch_by_id(session, area_input)
+            if not branch:
+                await message.answer("❌ Филиал не найден.")
+                return
 
-        branch_id = area_input.split(".")[0]
-        target = await get_rn_by_branch(branch_id)
-        if target:
-            await message.bot.send_message(
-                chat_id=target["id"],
-                text=build_access_request_message(user, "РГКС", area_input),
-                reply_markup=build_approval_keyboard(user["id"], role_id, area_input)
-            )
-            await message.answer("✅ Запрос отправлен руководителю направления.")
-        else:
-            await message.answer("⚠️ РН филиала не найден.")
+            admin = await get_super_admin(session)
+            if admin:
+                await message.bot.send_message(
+                    chat_id=admin.id,
+                    text=build_access_request_message(user, "РН", area_input),
+                    reply_markup=build_approval_keyboard(user.id, role_id, area_input)
+                )
+                await message.answer("✅ Запрос отправлен администратору.")
+            else:
+                await message.answer("⚠️ Главный администратор не найден.")
 
-    # Запрос от СИ (role_id = 3) → РГКС
-    elif role_id == ROLES["role_si"]:
-        if not await area_exists(area_input):
-            await message.answer("❌ Участок не найден.")
-            return
+        # Запрос от РГКС → РН
+        elif role_id == ROLES["role_rgks"]:
+            area = await get_area_by_id(session, area_input)
+            if not area:
+                await message.answer("❌ Участок не найден.")
+                return
 
-        target = await get_rgks_by_area(area_input)
-        if target:
-            await message.bot.send_message(
-                chat_id=target["id"],
-                text=build_access_request_message(user, "СИ", area_input),
-                reply_markup=build_approval_keyboard(user["id"], role_id, area_input)
-            )
-            await message.answer("✅ Запрос отправлен руководителю группы.")
-        else:
-            await message.answer("⚠️ РГКС участка не найден.")
+            branch_id = area_input.split(".")[0]
+            target = await get_rn_by_branch(session, branch_id)
+            if target:
+                await message.bot.send_message(
+                    chat_id=target.id,
+                    text=build_access_request_message(user, "РГКС", area_input),
+                    reply_markup=build_approval_keyboard(user.id, role_id, area_input)
+                )
+                await message.answer("✅ Запрос отправлен руководителю направления.")
+            else:
+                await message.answer("⚠️ РН филиала не найден.")
+
+        # Запрос от СИ → РГКС
+        elif role_id == ROLES["role_si"]:
+            area = await get_area_by_id(session, area_input)
+            if not area:
+                await message.answer("❌ Участок не найден.")
+                return
+
+            target = await get_rgks_by_area(session, area_input)
+            if target:
+                await message.bot.send_message(
+                    chat_id=target.id,
+                    text=build_access_request_message(user, "СИ", area_input),
+                    reply_markup=build_approval_keyboard(user.id, role_id, area_input)
+                )
+                await message.answer("✅ Запрос отправлен руководителю группы.")
+            else:
+                await message.answer("⚠️ РГКС участка не найден.")
+
 
 @router.callback_query(F.data.startswith("approve:"))
 async def handle_approve(callback: CallbackQuery):
     _, user_id, role_id, area = callback.data.split(":")
     user_id, role_id = int(user_id), int(role_id)
 
-    await update_user_role_area(user_id, role_id, area)
+    async with async_session() as session:
+        await set_user_role(session, user_id, role_id, area)
+
     await callback.message.edit_text("✅ Доступ одобрен.")
     await callback.bot.send_message(user_id, "🎉 Ваша заявка на доступ одобрена!")
+
 
 @router.callback_query(F.data.startswith("reject:"))
 async def handle_reject(callback: CallbackQuery):
