@@ -20,9 +20,9 @@ jobs:
 
     - name: Deploy to Windows server
       run: |
-        ssh -o StrictHostKeyChecking=no -p ${{ secrets.SSH_PORT }} ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} powershell -Command "
-          cd 'C:\Users\Beeline\Desktop\TechLineBot\TechLineBot';
-          git pull;
-          Stop-Process -Name python -Force -ErrorAction SilentlyContinue;
-          Start-Process -FilePath 'python' -ArgumentList 'bot.py' -NoNewWindow -WorkingDirectory 'C:\Users\Beeline\Desktop\TechLineBot\TechLineBot'
+        ssh -o StrictHostKeyChecking=no -p ${{ secrets.SSH_PORT }} ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "
+          cd C:/Users/Beeline/Desktop/TechLineBot/TechLineBot && \
+          git pull && \
+          taskkill /IM python.exe /F && \
+          start python bot.py
         "
