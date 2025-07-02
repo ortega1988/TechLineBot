@@ -124,3 +124,4 @@ def build_house_address_info(
     )
 
     return text
+

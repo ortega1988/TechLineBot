@@ -90,3 +90,12 @@ def get_confirm_add_keyboard() -> InlineKeyboardMarkup:
         ]
     ]
     return InlineKeyboardMarkup(inline_keyboard=keyboard)
+
+
+def get_list_houses_menu() -> InlineKeyboardMarkup:
+    keyboard = [
+        [InlineKeyboardButton(text="ℹ️ Подробно", callback_data="house:details")],
+        [InlineKeyboardButton(text="✏️ Редактировать", callback_data="house:edit")],
+        [InlineKeyboardButton(text="↩️ Назад", callback_data="admin_panel")]
+    ]
+    return InlineKeyboardMarkup(inline_keyboard=keyboard)

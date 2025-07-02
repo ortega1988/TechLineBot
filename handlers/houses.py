@@ -5,12 +5,15 @@ from aiogram.fsm.context import FSMContext
 from fsm.states import FindHouseFSM
 from db.db import async_session
 from db.crud.users import get_user_by_id
-from db.crud.houses import get_house_by_address, create_house_with_entrances, get_entrances_by_house
+from db.crud.houses import get_house_by_address
 from db.crud.zones import get_zone_by_area
-from keyboards.inline import get_list_gks_menu, get_confirm_add_keyboard
+from keyboards.inline import get_list_gks_menu, get_confirm_add_keyboard, get_list_houses_menu
 from utils.messages import build_house_address_info
 from utils.parser import parse_house_from_2gis
 from utils.address import detect_city_and_zone_by_address
+from db.crud.parsed_houses import save_parsed_house_to_db
+from db.crud.parsed_houses import get_house_parsed_view
+from utils.messages import build_parsed_house_info
 
 from datetime import datetime
 import re
@@ -159,28 +162,58 @@ async def input_address(message: Message, state: FSMContext):
             return
 
         else:
-            entrances = await get_entrances_by_house(session, house.id)
+            parsed = await get_house_parsed_view(session, house.id)
 
-    entrances_data = []
-    for entrance in entrances:
-        flats_range = entrance.flats_text or "Не указано"
-        entrances_data.append({
-            'entrance_number': entrance.entrance_number,
-            'floors': entrance.floors or 'Не указано',
-            'flats_range': flats_range
-        })
+            if not parsed:
+                await message.answer("⚠️ Не удалось получить данные о доме.")
+                await state.clear()
+                return
 
-    text = build_house_address_info(
-        city_name=house.zone.city.name,
-        zone_name=house.zone.name,
-        street=house.street,
-        house_number=house.house_number,
-        floors=house.floors,
-        entrances=house.entrances,
-        entrance_info={e['entrance_number']: e['flats_range'] for e in entrances_data},
-        notes=house.notes,
-        updated_at=house.updated_at.strftime("%d.%m.%Y %H:%M")
-    )
+            text = build_parsed_house_info(
+                parsed_data=parsed,
+                db_city_name=parsed["address"].split(",")[0].strip(),
+                db_zone_name=parsed["address"].split(",")[1].strip() if ',' in parsed["address"] else "—",
+                notes=parsed["notes"],
+                updated_at=parsed["updated_at"],
+                jeu_address=parsed["jeu_address"]
+            )
 
-    await message.answer(text, reply_markup=get_list_gks_menu())
+
+    await message.answer(text, reply_markup=get_list_houses_menu())
     await state.clear()
+
+
+@router.callback_query(F.data == "confirm_add_house")
+async def confirm_add_house(callback: CallbackQuery, state: FSMContext):
+    user_id = callback.from_user.id
+    data = await state.get_data()
+    parsed = data.get("parsed_house")
+
+    if not parsed:
+        await callback.message.answer("⚠️ Данные не найдены. Повторите попытку.")
+        await state.clear()
+        await callback.answer()
+        return
+
+    async with async_session() as session:
+        house_id = await save_parsed_house_to_db(
+            session=session,
+            parsed_data={
+                "title": f"{parsed['street']} {parsed['house_number']}",
+                "floors": f"{parsed['floors']} этажей",
+                "entrances": f"{parsed['entrances']} подъездов",
+                "apartments": [
+                    f"{k} подъезд: квартиры {v}"
+                    for k, v in parsed["entrance_info"].items()
+                ],
+                "address": parsed.get("notes", "")
+            },
+            area_id=data["area_id"],
+            zone_id=parsed["zone_id"],
+            created_by=user_id,
+            notes=parsed.get("notes", "")
+        )
+
+    await callback.message.answer("✅ Дом успешно добавлен в базу данных!", reply_markup=get_list_houses_menu())
+    await state.clear()
+    await callback.answer()
