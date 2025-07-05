@@ -175,6 +175,8 @@ class House(Base):
     zone = relationship("Zone", back_populates="houses")
 
     entrances_rel = relationship("HouseEntrance", back_populates="house")
+    housing_office_id: Mapped[int] = mapped_column(ForeignKey("housing_offices.id"), nullable=True)
+    housing_office = relationship("HousingOffice", back_populates="houses")
 
 
 class HouseEntrance(Base):
@@ -288,3 +290,21 @@ class City(Base):
 
     branch = relationship("Branch", back_populates="cities")
     zones = relationship("Zone", back_populates="city")
+
+
+class HousingOffice(Base):
+    __tablename__ = "housing_offices"
+
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    name: Mapped[str] = mapped_column(String(200), nullable=False)
+    address: Mapped[str] = mapped_column(String(300), nullable=False)
+    comments: Mapped[str] = mapped_column(Text, default="")
+    photo_url: Mapped[str] = mapped_column(String(500), default="")
+    working_hours: Mapped[str] = mapped_column(String(100), default="")
+    phone: Mapped[str] = mapped_column(String(50), default="")
+    email: Mapped[str] = mapped_column(String(100), default="")
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=msk_now)
+
+    houses = relationship("House", back_populates="housing_office")
+
+

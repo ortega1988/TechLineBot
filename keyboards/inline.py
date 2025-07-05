@@ -60,7 +60,8 @@ def get_admin_menu() -> InlineKeyboardMarkup:
     keyboard = [
         [InlineKeyboardButton(text="➕ ГКС", callback_data="admin:gks_menu")],
         [InlineKeyboardButton(text="➕ Районы", callback_data="admin:zone_menu")],
-        [InlineKeyboardButton(text="↩️ Назад", callback_data="admin:back")]
+        [InlineKeyboardButton(text="➕ Добавить ЖЭУ", callback_data="add_housing_office")],
+        [InlineKeyboardButton(text="↩️ Назад", callback_data="admin:back")],
     ]
     return InlineKeyboardMarkup(inline_keyboard=keyboard)
 
