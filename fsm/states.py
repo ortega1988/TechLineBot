@@ -22,3 +22,8 @@ class FindHouseFSM(StatesGroup):
     waiting_for_address = State()
     confirming_add = State()
     test = State()
+
+
+class AddHousingOffice2GISFSM(StatesGroup):
+    waiting_for_name = State()
+    confirming_add = State()

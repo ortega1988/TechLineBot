@@ -20,6 +20,36 @@ def build_access_request_message(user: dict, role_name: str, target_area: str | 
     return text
 
 
+def format_housing_office_block(jeu) -> str:
+    """
+    Принимает либо строку ('нет информации'), либо словарь с данными ЖЭУ.
+    Возвращает красивый блок для вставки в инфо о доме.
+    """
+    if not jeu or jeu == "нет информации":
+        return "нет информации"
+
+    # Если это строка (например, пользователь сам вставил)
+    if isinstance(jeu, str):
+        return jeu
+
+    # Если это словарь/объект
+    parts = []
+    if jeu.get('name'):
+        parts.append(f"<b>{jeu['name']}</b>")
+    if jeu.get('address'):
+        parts.append(f"📍 {jeu['address']}")
+    if jeu.get('phone'):
+        parts.append(f"☎️ {jeu['phone']}")
+    if jeu.get('working_hours'):
+        parts.append(f"⏰ {jeu['working_hours']}")
+    if jeu.get('comments'):
+        parts.append(f"💬 {jeu['comments']}")
+    if not parts:
+        return "нет информации"
+    return "\n".join(parts)
+
+
+
 def build_parsed_house_info(
     parsed_data: dict,
     db_city_name: str,
@@ -79,7 +109,7 @@ def build_parsed_house_info(
         text += "🚪 Нет данных о подъездах.\n"
 
     text += (
-        f"\n🏢 <b>ЖЭУ:</b> {jeu_address}\n"
+        f"\n🏢 <b>ЖЭУ:</b>\n{format_housing_office_block(jeu_address)}\n"
         f"📝 <b>Комментарии:</b> {notes or 'Нет'}\n"
         f"🕓 <b>Дата обновления информации:</b> {updated_at or 'Не указано'}"
     )
@@ -100,7 +130,6 @@ def build_house_address_info(
     notes: str = None,
     updated_at: str = None
 ) -> str:
-
     text = (
         f"🏠 <b>Дом:</b>\n"
         f"{city_name}, {zone_name}, {street} {house_number}\n\n"
@@ -118,7 +147,7 @@ def build_house_address_info(
         text += "🚪 Нет данных о подъездах.\n"
 
     text += (
-        f"\n🏢 <b>ЖЭУ:</b> {jeu_address}\n"
+        f"\n🏢 <b>ЖЭУ:</b>\n{format_housing_office_block(jeu_address)}\n"
         f"📝 <b>Комментарии:</b> {notes or 'Нет'}\n"
         f"🕓 <b>Дата обновления информации:</b> {updated_at or 'Не указано'}"
     )

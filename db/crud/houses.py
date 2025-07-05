@@ -6,15 +6,11 @@ from sqlalchemy.engine import ScalarResult
 from db.models import House, HouseEntrance
 
 
-async def get_house_by_id(
-    session: AsyncSession, house_id: int
-) -> Optional[House]:
-    result: ScalarResult[House] = (
-        await session.execute(
-            select(House).where(House.id == house_id)
-        )
-    ).scalars()
-    return result.first()
+async def get_house_by_id(session: AsyncSession, house_id: int) -> Optional[House]:
+    result = await session.execute(
+        select(House).where(House.id == house_id)
+    )
+    return result.scalar_one_or_none()
 
 
 async def get_houses_by_area(
@@ -103,3 +99,6 @@ async def get_entrances_by_house(
         )
     ).scalars()
     return result.all()
+
+
+

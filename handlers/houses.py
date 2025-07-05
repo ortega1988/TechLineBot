@@ -5,14 +5,16 @@ from aiogram.fsm.context import FSMContext
 from fsm.states import FindHouseFSM
 from db.db import async_session
 from db.crud.users import get_user_by_id
-from db.crud.houses import get_house_by_address
+from db.crud.houses import get_house_by_address, get_house_by_id
 from db.crud.zones import get_zone_by_area
+from db.crud.housing_offices import get_housing_office_by_id
+from db.crud.parsed_houses import save_parsed_house_to_db
+from db.crud.parsed_houses import get_house_parsed_view
 from keyboards.inline import get_list_gks_menu, get_confirm_add_keyboard, get_list_houses_menu
 from utils.messages import build_house_address_info
 from utils.parser import parse_house_from_2gis
 from utils.address import detect_city_and_zone_by_address
-from db.crud.parsed_houses import save_parsed_house_to_db
-from db.crud.parsed_houses import get_house_parsed_view
+
 from utils.messages import build_parsed_house_info
 
 from datetime import datetime
@@ -178,12 +180,12 @@ async def input_address(message: Message, state: FSMContext):
                 jeu_address=parsed["jeu_address"]
             )
 
-
-    await message.answer(text, reply_markup=get_list_houses_menu())
+    markup = get_list_houses_menu(housing_office_id=house.housing_office_id, house_id=house.id)
+    await message.answer(text, reply_markup=markup)
     await state.clear()
 
 
-@router.callback_query(F.data == "confirm_add_house")
+router.callback_query(F.data == "confirm_add_house")
 async def confirm_add_house(callback: CallbackQuery, state: FSMContext):
     user_id = callback.from_user.id
     data = await state.get_data()
@@ -214,6 +216,20 @@ async def confirm_add_house(callback: CallbackQuery, state: FSMContext):
             notes=parsed.get("notes", "")
         )
 
-    await callback.message.answer("✅ Дом успешно добавлен в базу данных!", reply_markup=get_list_houses_menu())
+        # После сохранения — получить объект дома по id через CRUD
+        house = await get_house_by_id(session, house_id)
+
+        markup = get_list_houses_menu(
+            housing_office_id=house.housing_office_id,
+            house_id=house.id
+        )
+
+    # Далее логика прежняя
+    if callback.message.text is None:
+        await callback.message.answer("✅ Дом успешно добавлен в базу данных!", reply_markup=markup)
+    else:
+        await callback.message.edit_text(callback.message.text + "\n\n✅ Дом успешно добавлен в базу данных!", reply_markup=markup)
+
     await state.clear()
     await callback.answer()
+

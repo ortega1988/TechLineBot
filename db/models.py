@@ -41,63 +41,38 @@ class Branch(Base):
 
 class Zone(Base):
     __tablename__ = "zones"
-
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     name: Mapped[str] = mapped_column(String(100), nullable=False)
-
     branch_id: Mapped[int] = mapped_column(
-        SmallInteger,
-        ForeignKey("branches.id", ondelete="RESTRICT", onupdate="CASCADE"),
-        nullable=False
+        SmallInteger, ForeignKey("branches.id", ondelete="RESTRICT", onupdate="CASCADE"), nullable=False
     )
-
     city_id: Mapped[int] = mapped_column(
-        Integer,
-        ForeignKey("cities.id", ondelete="RESTRICT", onupdate="CASCADE"),
-        nullable=False
+        Integer, ForeignKey("cities.id", ondelete="RESTRICT", onupdate="CASCADE"), nullable=False
+    )
+    area_id: Mapped[str] = mapped_column(
+        String(10), ForeignKey("areas.id", ondelete="CASCADE"), nullable=False
     )
 
     branch = relationship("Branch", back_populates="zones")
     city = relationship("City", back_populates="zones")
-    area_zones = relationship("AreaZone", back_populates="zone", cascade="all, delete")
+    area = relationship("Area", back_populates="zones")
     houses = relationship("House", back_populates="zone", cascade="all, delete")
+
 
 
 class Area(Base):
     __tablename__ = "areas"
-
     id: Mapped[str] = mapped_column(String(10), primary_key=True)
     name: Mapped[str] = mapped_column(String(100), nullable=False)
-
     branch_id: Mapped[int] = mapped_column(
-        SmallInteger,
-        ForeignKey("branches.id", ondelete="RESTRICT", onupdate="CASCADE"),
-        nullable=False
+        SmallInteger, ForeignKey("branches.id", ondelete="RESTRICT", onupdate="CASCADE"), nullable=False
     )
 
     branch = relationship("Branch", back_populates="areas")
+    zones = relationship("Zone", back_populates="area", cascade="all, delete")
     users = relationship("User", back_populates="area", foreign_keys="[User.area_id]")
     temp_users = relationship("User", back_populates="temp_area", foreign_keys="[User.temp_area_id]")
     houses = relationship("House", back_populates="area")
-    area_zones = relationship("AreaZone", back_populates="area", cascade="all, delete")
-
-
-class AreaZone(Base):
-    __tablename__ = "area_zones"
-
-    area_id: Mapped[str] = mapped_column(
-        String(10),
-        ForeignKey("areas.id", ondelete="CASCADE"),
-        primary_key=True
-    )
-    zone_id: Mapped[int] = mapped_column(
-        Integer,
-        ForeignKey("zones.id", ondelete="CASCADE"),
-        primary_key=True
-    )
-
-    area = relationship("Area", back_populates="area_zones")
-    zone = relationship("Zone", back_populates="area_zones")
 
 
 class User(Base):
@@ -298,6 +273,8 @@ class HousingOffice(Base):
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     name: Mapped[str] = mapped_column(String(200), nullable=False)
     address: Mapped[str] = mapped_column(String(300), nullable=False)
+    city_id: Mapped[int] = mapped_column(ForeignKey("cities.id"), nullable=False)
+    zone_id: Mapped[int] = mapped_column(ForeignKey("zones.id"), nullable=False)
     comments: Mapped[str] = mapped_column(Text, default="")
     photo_url: Mapped[str] = mapped_column(String(500), default="")
     working_hours: Mapped[str] = mapped_column(String(100), default="")
@@ -305,6 +282,11 @@ class HousingOffice(Base):
     email: Mapped[str] = mapped_column(String(100), default="")
     created_at: Mapped[datetime] = mapped_column(DateTime, default=msk_now)
 
-    houses = relationship("House", back_populates="housing_office")
+    city = relationship("City")
+    zone = relationship("Zone")
+
+    __table_args__ = (
+        UniqueConstraint("name", "address", "city_id", "zone_id", name="uq_housing_office"),
+    )
 
 

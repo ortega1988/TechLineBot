@@ -61,7 +61,7 @@ def get_admin_menu() -> InlineKeyboardMarkup:
         [InlineKeyboardButton(text="➕ ГКС", callback_data="admin:gks_menu")],
         [InlineKeyboardButton(text="➕ Районы", callback_data="admin:zone_menu")],
         [InlineKeyboardButton(text="➕ Добавить ЖЭУ", callback_data="add_housing_office")],
-        [InlineKeyboardButton(text="↩️ Назад", callback_data="admin:back")],
+        [InlineKeyboardButton(text="↩️ Назад", callback_data="start")],
     ]
     return InlineKeyboardMarkup(inline_keyboard=keyboard)
 
@@ -87,16 +87,36 @@ def get_confirm_add_keyboard() -> InlineKeyboardMarkup:
     keyboard = [
         [
             InlineKeyboardButton(text="✅ Добавить в базу", callback_data="confirm_add_house"),
-            InlineKeyboardButton(text="❌ Отмена", callback_data="cancel_add_house"),
+            InlineKeyboardButton(text="❌ Отмена", callback_data="start"),
         ]
     ]
     return InlineKeyboardMarkup(inline_keyboard=keyboard)
 
 
-def get_list_houses_menu() -> InlineKeyboardMarkup:
+from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
+
+def get_list_houses_menu(housing_office_id: int | None, house_id: int) -> InlineKeyboardMarkup:
     keyboard = [
         [InlineKeyboardButton(text="ℹ️ Подробно", callback_data="house:details")],
         [InlineKeyboardButton(text="✏️ Редактировать", callback_data="house:edit")],
-        [InlineKeyboardButton(text="↩️ Назад", callback_data="admin_panel")]
     ]
+    if housing_office_id is None:
+        keyboard.append([
+            InlineKeyboardButton(
+                text="🔗 Привязать ЖЭУ",
+                callback_data=f"attach_housing_office:{house_id}"
+            )
+        ])
+    keyboard.append([
+        InlineKeyboardButton(text="↩️ Назад", callback_data="start")
+    ])
     return InlineKeyboardMarkup(inline_keyboard=keyboard)
+
+
+def get_confirm_add_housing_office_keyboard():
+    return InlineKeyboardMarkup(inline_keyboard=[
+        [
+            InlineKeyboardButton(text="✅ Добавить", callback_data="add_housing_office_confirm"),
+            InlineKeyboardButton(text="↩️ Отмена", callback_data="start"),
+        ]
+    ])
