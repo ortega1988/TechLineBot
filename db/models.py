@@ -151,7 +151,7 @@ class House(Base):
 
     entrances_rel = relationship("HouseEntrance", back_populates="house")
     housing_office_id: Mapped[int] = mapped_column(ForeignKey("housing_offices.id"), nullable=True)
-    housing_office = relationship("HousingOffice", back_populates="houses")
+    housing_office = relationship("HousingOffice")
 
 
 class HouseEntrance(Base):
