@@ -7,6 +7,8 @@ async def create_housing_office(
     session: AsyncSession,
     name: str,
     address: str,
+    city_id: int,
+    zone_id: int,
     comments: str = "",
     photo_url: str = "",
     working_hours: str = "",
@@ -16,6 +18,8 @@ async def create_housing_office(
     office = HousingOffice(
         name=name,
         address=address,
+        city_id=city_id,
+        zone_id=zone_id,
         comments=comments,
         photo_url=photo_url,
         working_hours=working_hours,

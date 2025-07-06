@@ -6,11 +6,11 @@ from fsm.states import FindHouseFSM
 from db.db import async_session
 from db.crud.users import get_user_by_id, set_default_city_for_user
 from db.crud.houses import get_house_by_address, get_house_by_id
-from db.crud.housing_offices import get_housing_office_by_id
+from db.crud.housing_offices import get_housing_office_by_id, create_housing_office
 from db.crud.parsed_houses import save_parsed_house_to_db
 from db.crud.parsed_houses import get_house_parsed_view
 from db.crud.zones import get_zones_by_area_and_city
-from db.crud.cities import get_cities_by_area, get_city_by_id
+from db.crud.cities import get_cities_by_area, get_city_by_id, get_cities_by_branch
 from keyboards.inline import get_confirm_add_keyboard, get_list_houses_menu, get_house_cities_keyboard
 from utils.messages import build_house_address_info
 from utils.parser import parse_house_from_2gis
@@ -35,7 +35,7 @@ async def start_find_house(callback: CallbackQuery, state: FSMContext):
             return
         if not user.default_city_id:
             # Нет города — предлагаем выбрать
-            cities = await get_cities_by_area(session, user.area_id)
+            cities = await get_cities_by_branch(session, user.branch_id)
             await callback.message.answer(
                 "Выберите город по умолчанию для поиска:",
                 reply_markup=get_house_cities_keyboard(cities)
@@ -214,44 +214,29 @@ async def input_address(message: Message, state: FSMContext):
 
 
 
-@router.callback_query(F.data == "confirm_add_house")
-async def confirm_add_house(callback: CallbackQuery, state: FSMContext):
-    user_id = callback.from_user.id
+@router.callback_query(FindHouseFSM.confirming_add, F.data == "add_housing_office_confirm")
+async def confirm_add(callback: CallbackQuery, state: FSMContext):
     data = await state.get_data()
-    parsed = data.get("parsed_house")
+    result = data["parsed"]
 
-    if not parsed:
-        await callback.message.answer("⚠️ Данные не найдены. Повторите попытку.")
-        await state.clear()
-        await callback.answer()
-        return
-    print(parsed)
     async with async_session() as session:
-        house_id = await save_parsed_house_to_db(
+        user = await get_user_by_id(session, callback.from_user.id)
+        zone = await get_zone_by_area(session, user.area_id)
+        city = zone.city
+
+        await create_housing_office(
             session=session,
-            parsed_data={
-                "title": f"{parsed['title']}",
-                "floors": f"{parsed['floors']}",
-                "entrances": f"{parsed['entrances']}",
-                "apartments": parsed['apartments'],
-            },
-            area_id=parsed["area_id"],
-            zone_id=parsed["zone_id"],
-            created_by=user_id,
-            notes=parsed.get("notes", "")
+            name=result.get("title", ""),
+            address=result.get("address", ""),
+            city_id=city.id,
+            zone_id=zone.id,
+            comments=result.get("comments", ""),
+            working_hours=result.get("working_hours", ""),
+            phone=result.get("phone", ""),
+            email="",       
+            photo_url="",   
         )
-
-        house = await get_house_by_id(session, house_id)
-        markup = get_list_houses_menu(
-            housing_office_id=house.housing_office_id,
-            house_id=house.id
-        )
-
-    if callback.message.text is None:
-        await callback.message.answer("✅ Дом успешно добавлен в базу данных!", reply_markup=markup)
-    else:
-        await callback.message.edit_text(callback.message.text + "\n\n✅ Дом успешно добавлен в базу данных!", reply_markup=markup)
-
+    await callback.message.edit_text("✅ ЖЭУ успешно добавлено!", reply_markup=get_admin_menu())
     await state.clear()
     await callback.answer()
 

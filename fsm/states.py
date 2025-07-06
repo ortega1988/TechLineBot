@@ -38,3 +38,7 @@ class AddCityFSM(StatesGroup):
     waiting_for_city_name = State()
     waiting_for_city_url = State()
     confirming = State()
+
+
+class SettingsFSM(StatesGroup):
+    waiting_for_city_settings = State()

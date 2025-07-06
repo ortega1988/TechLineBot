@@ -17,11 +17,12 @@ def build_main_menu(role_id: int) -> InlineKeyboardMarkup:
 
     # Общие кнопки
     buttons.append(
-        [InlineKeyboardButton(text="📋 Меню", callback_data="user_menu")],
-        )
-    buttons.append(
         [InlineKeyboardButton(text="🔍 Поиск дома", callback_data="find_house")],
         )
+    buttons.append(
+        [InlineKeyboardButton(text="⚙️ Настройки", callback_data="settings")],
+        )
+    
     
 
     # Админские кнопки (роль < 3)
@@ -189,3 +190,13 @@ def get_house_cities_keyboard(cities):
             for city in cities
         ]
     )
+
+
+def get_setting_cities_keyboard(cities, current_city_id: int | None = None):
+    keyboard = []
+    for city in cities:
+        is_current = city.id == current_city_id
+        text = f"✅ {city.name}" if is_current else city.name
+        keyboard.append([InlineKeyboardButton(text=text, callback_data=f"settings_city_{city.id}")])
+    keyboard.append([InlineKeyboardButton(text="⬅️ Назад", callback_data="start")])
+    return InlineKeyboardMarkup(inline_keyboard=keyboard)
