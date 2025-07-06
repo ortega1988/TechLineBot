@@ -75,3 +75,23 @@ async def delete_city(
 async def get_all_cities(session: AsyncSession) -> Sequence[City]:
     result = await session.execute(select(City))
     return result.scalars().all()
+
+async def get_cities_by_branch_id(session: AsyncSession, branch_id: int) -> Sequence[City]:
+    result = await session.execute(select(City).where(City.branch_id == branch_id).order_by(City.name))
+    return result.scalars().all()
+
+
+from collections.abc import Sequence
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select
+from db.models import City, Zone
+
+async def get_cities_by_area(session: AsyncSession, area_id: str) -> Sequence[City]:
+    result = await session.execute(
+        select(City)
+        .join(Zone, City.id == Zone.city_id)
+        .where(Zone.area_id == area_id)
+        .distinct()
+        .order_by(City.name)
+    )
+    return result.scalars().all()

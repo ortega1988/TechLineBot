@@ -6,7 +6,6 @@ from fsm.states import AddHousingOffice2GISFSM
 from db.db import async_session
 from db.crud.housing_offices import create_housing_office
 from db.crud.users import get_user_by_id
-from db.crud.zones import get_zone_by_area
 from db.models import City
 from utils.parser import parse_housing_office_from_2gis
 from keyboards.inline import get_admin_menu

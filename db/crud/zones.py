@@ -3,7 +3,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.engine import ScalarResult
 from sqlalchemy.orm import selectinload
-from db.models import Zone, AreaZone, City
+from db.models import Zone, City
 
 
 async def get_zone_by_id(
@@ -61,13 +61,15 @@ async def get_zones_by_city(
 async def create_zone(
     session: AsyncSession,
     name: str,
-    branch_id: int,
-    city_id: int
+    city_id: int,
+    area_id: str,
+    branch_id: int
 ) -> Zone:
     zone = Zone(
         name=name,
-        branch_id=branch_id,
-        city_id=city_id
+        city_id=city_id,
+        area_id=area_id,
+        branch_id=branch_id
     )
     session.add(zone)
     await session.commit()
@@ -88,32 +90,6 @@ async def delete_zone(
     return True
 
 
-async def get_zone_by_area(session: AsyncSession, area_id: str) -> Optional[Zone]:
-    result = await session.execute(
-        select(Zone)
-        .options(selectinload(Zone.city))  # Жадно грузим city
-        .join(AreaZone, AreaZone.zone_id == Zone.id)
-        .where(AreaZone.area_id == area_id)
-    )
-    return result.scalars().first()
-
-
-
-async def link_area_with_zone(
-    session: AsyncSession,
-    area_id: str,
-    zone_id: int
-) -> AreaZone:
-    link = AreaZone(
-        area_id=area_id,
-        zone_id=zone_id
-    )
-    session.add(link)
-    await session.commit()
-    await session.refresh(link)
-    return link
-
-
 async def get_zone_by_city_and_zone_name(
     session: AsyncSession,
     city_name: str,
@@ -127,3 +103,14 @@ async def get_zone_by_city_and_zone_name(
         .where(Zone.name.ilike(zone_name))
     )
     return result.scalars().first()
+
+async def get_zones_by_area(session: AsyncSession, area_id: str) -> Sequence[Zone]:
+    result = await session.execute(select(Zone).where(Zone.area_id == area_id))
+    return result.scalars().all()
+
+
+async def get_zones_by_area_and_city(session: AsyncSession, area_id: str, city_id: int) -> Sequence[Zone]:
+    result = await session.execute(
+        select(Zone).where(Zone.area_id == area_id, Zone.city_id == city_id)
+    )
+    return result.scalars().all()

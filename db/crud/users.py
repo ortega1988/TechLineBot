@@ -100,3 +100,11 @@ async def get_rgks_by_area(
         )
     )
     return result.scalars().first()
+
+
+async def set_default_city_for_user(session: AsyncSession, user_id: int, city_id: int) -> None:
+    from db.models import User
+    user = await session.get(User, user_id)
+    if user:
+        user.default_city_id = city_id
+        await session.commit()

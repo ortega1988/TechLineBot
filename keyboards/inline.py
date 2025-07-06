@@ -25,7 +25,7 @@ def build_main_menu(role_id: int) -> InlineKeyboardMarkup:
     
 
     # Админские кнопки (роль < 3)
-    if role_id < 3:
+    if role_id < 30:
         buttons.append([
             InlineKeyboardButton(text="🛠 Администрирование", callback_data="admin_panel")
         ])
@@ -58,21 +58,14 @@ def build_approval_keyboard(user_id: int, role_id: int, target: str) -> InlineKe
 
 def get_admin_menu() -> InlineKeyboardMarkup:
     keyboard = [
-        [InlineKeyboardButton(text="➕ ГКС", callback_data="admin:gks_menu")],
-        [InlineKeyboardButton(text="➕ Районы", callback_data="admin:zone_menu")],
+        [InlineKeyboardButton(text="➕ Филиал", callback_data="add_branch")],
+        [InlineKeyboardButton(text="➕ ГКС", callback_data="admin:add_gks")],
+        [InlineKeyboardButton(text="➕ Город", callback_data="add_city")],
+        [InlineKeyboardButton(text="➕ Районы", callback_data="admin:add_zone")],
         [InlineKeyboardButton(text="➕ Добавить ЖЭУ", callback_data="add_housing_office")],
         [InlineKeyboardButton(text="↩️ Назад", callback_data="start")],
     ]
     return InlineKeyboardMarkup(inline_keyboard=keyboard)
-
-
-def get_list_zones_menu() -> InlineKeyboardMarkup:
-    keyboard = [
-        [InlineKeyboardButton(text="➕ Добавить район", callback_data="admin:add_zone")],
-        [InlineKeyboardButton(text="↩️ Назад", callback_data="admin_panel")]
-    ]
-    return InlineKeyboardMarkup(inline_keyboard=keyboard)
-
 
 
 def get_list_gks_menu() -> InlineKeyboardMarkup:
@@ -93,7 +86,6 @@ def get_confirm_add_keyboard() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(inline_keyboard=keyboard)
 
 
-from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 
 def get_list_houses_menu(housing_office_id: int | None, house_id: int) -> InlineKeyboardMarkup:
     keyboard = [
@@ -113,10 +105,87 @@ def get_list_houses_menu(housing_office_id: int | None, house_id: int) -> Inline
     return InlineKeyboardMarkup(inline_keyboard=keyboard)
 
 
-def get_confirm_add_housing_office_keyboard():
+def get_confirm_add_housing_office_keyboard() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(inline_keyboard=[
         [
             InlineKeyboardButton(text="✅ Добавить", callback_data="add_housing_office_confirm"),
             InlineKeyboardButton(text="↩️ Отмена", callback_data="start"),
         ]
     ])
+
+
+def get_confirm_add_branch_keyboard() -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="✅ Добавить", callback_data="add_branch_confirm")],
+        [InlineKeyboardButton(text="↩️ Назад", callback_data="start")]
+    ])
+
+
+def get_confirm_add_city_keyboard() -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="✅ Добавить", callback_data="add_city_confirm")],
+        [InlineKeyboardButton(text="↩️ Отмена", callback_data="start")]
+    ])
+
+
+def get_regions_keyboard(regions: list) -> InlineKeyboardMarkup:
+    buttons = [
+        [InlineKeyboardButton(text=region.name, callback_data=f"add_city_region_{region.id}")]
+        for region in regions
+    ]
+    buttons.append([
+        InlineKeyboardButton(text="➕ Добавить регион", callback_data="add_branch"),
+        InlineKeyboardButton(text="↩️ Назад", callback_data="start"),
+    ])
+    return InlineKeyboardMarkup(inline_keyboard=buttons)
+
+def get_regions_gks_keyboard(regions: list) -> InlineKeyboardMarkup:
+    buttons = [
+        [InlineKeyboardButton(text=region.name, callback_data=f"add_gks_region_{region.id}")]
+        for region in regions
+    ]
+    buttons.append([
+        InlineKeyboardButton(text="➕ Добавить регион", callback_data="add_branch"),
+        InlineKeyboardButton(text="↩️ Назад", callback_data="start"),
+    ])
+    return InlineKeyboardMarkup(inline_keyboard=buttons)
+
+
+def get_branches_keyboard(branches: list) -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(
+        inline_keyboard=[
+            [InlineKeyboardButton(text=branch.name, callback_data=f"add_zone_branch_{branch.id}")]
+            for branch in branches
+        ] + [[
+            InlineKeyboardButton(text="↩️ Назад", callback_data="start"),
+        ]]
+    )
+
+def get_cities_keyboard(cities: list) -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(
+        inline_keyboard=[
+            [InlineKeyboardButton(text=city.name, callback_data=f"add_zone_city_{city.id}")]
+            for city in cities
+        ] + [[
+            InlineKeyboardButton(text="↩️ Назад", callback_data="add_zone_choose_branch"),
+        ]]
+    )
+
+def get_areas_keyboard(areas: list) -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(
+        inline_keyboard=[
+            [InlineKeyboardButton(text=area.name, callback_data=f"add_zone_area_{area.id}")]
+            for area in areas
+        ] + [[
+            InlineKeyboardButton(text="↩️ Назад", callback_data="add_zone_choose_city"),
+        ]]
+    )
+
+
+def get_house_cities_keyboard(cities):
+    return InlineKeyboardMarkup(
+        inline_keyboard=[
+            [InlineKeyboardButton(text=city.name, callback_data=f"find_house_city_{city.id}")]
+            for city in cities
+        ]
+    )

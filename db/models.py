@@ -103,6 +103,8 @@ class User(Base):
         DateTime, default=msk_now, onupdate=msk_now
     )
     notes: Mapped[str] = mapped_column(Text, nullable=True)
+    default_city_id: Mapped[int | None] = mapped_column(Integer, ForeignKey("cities.id"), nullable=True)
+
 
     role = relationship("Role", back_populates="users")
     branch = relationship("Branch", back_populates="users")

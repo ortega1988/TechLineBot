@@ -26,23 +26,21 @@ async def get_houses_by_area(
 
 async def get_house_by_address(
     session: AsyncSession,
-    city: str,
     area_id: str,
+    zone_id: int,
     street: str,
     house_number: str
 ) -> Optional[House]:
-    result: ScalarResult[House] = (
-        await session.execute(
-            select(House).where(
-                House.area_id == area_id,
-                House.street == street,
-                House.house_number == house_number,
-                House.is_active == True
-            )
+    result = await session.execute(
+        select(House).where(
+            House.area_id == area_id,
+            House.zone_id == zone_id,
+            House.street == street,
+            House.house_number == house_number,
+            House.is_active == True
         )
-    ).scalars()
-
-    return result.first()
+    )
+    return result.scalars().first()
 
 
 async def create_house_with_entrances(
