@@ -137,6 +137,19 @@ def get_list_houses_menu(
     return InlineKeyboardMarkup(inline_keyboard=keyboard)
 
 
+def get_housing_offices_keyboard(housing_offices: list) -> InlineKeyboardMarkup:
+    buttons = [
+        [
+            InlineKeyboardButton(
+                text=office.name, callback_data=f"select_housing_office:{office.id}"
+            )
+        ]
+        for office in housing_offices
+    ]
+    buttons.append([InlineKeyboardButton(text="↩️ Назад", callback_data="start")])
+    return InlineKeyboardMarkup(inline_keyboard=buttons)
+
+
 def get_confirm_add_housing_office_keyboard() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(
         inline_keyboard=[

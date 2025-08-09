@@ -6,16 +6,25 @@ from aiogram.fsm.context import FSMContext
 from aiogram.types import CallbackQuery, Message
 
 from db.crud.cities import get_cities_by_area, get_cities_by_branch, get_city_by_id
-from db.crud.houses import get_house_by_address, get_house_by_id
-from db.crud.housing_offices import create_housing_office, get_housing_office_by_id
+from db.crud.houses import (
+    get_house_by_address,
+    get_house_by_id,
+    set_housing_office_for_house,
+)
+from db.crud.housing_offices import (
+    create_housing_office,
+    get_housing_office_by_id,
+    get_housing_offices_by_city,
+)
 from db.crud.parsed_houses import get_house_parsed_view, save_parsed_house_to_db
 from db.crud.users import get_user_by_id, set_default_city_for_user
 from db.crud.zones import get_zones_by_area_and_city
 from db.db import async_session
-from fsm.states import FindHouseFSM
+from fsm.states import AttachHousingOfficeFSM, FindHouseFSM
 from keyboards.inline import (
     get_confirm_add_keyboard,
     get_house_cities_keyboard,
+    get_housing_offices_keyboard,
     get_list_houses_menu,
 )
 from utils.address import detect_city_and_zone_by_address
@@ -260,5 +269,53 @@ async def confirm_add(callback: CallbackQuery, state: FSMContext):
     await callback.message.edit_text(
         "✅ ЖЭУ успешно добавлено!", reply_markup=get_admin_menu()
     )
+    await state.clear()
+    await callback.answer()
+
+
+@router.callback_query(F.data.startswith("attach_housing_office:"))
+async def attach_housing_office(callback: CallbackQuery, state: FSMContext):
+    house_id = int(callback.data.split(":")[1])
+    async with async_session() as session:
+        house = await get_house_by_id(session, house_id)
+        if not house:
+            await callback.message.answer("❌ Дом не найден.")
+            await callback.answer()
+            return
+
+        # У дома есть зона, у зоны есть город
+        city_id = house.zone.city_id
+        housing_offices = await get_housing_offices_by_city(session, city_id)
+
+        if not housing_offices:
+            await callback.message.answer(
+                "❌ В этом городе нет зарегистрированных ЖЭУ."
+            )
+            await callback.answer()
+            return
+
+        await state.update_data(house_id=house_id)
+        await callback.message.edit_text(
+            "Выберите ЖЭУ для привязки:",
+            reply_markup=get_housing_offices_keyboard(housing_offices),
+        )
+        await state.set_state(AttachHousingOfficeFSM.waiting_for_housing_office)
+        await callback.answer()
+
+
+@router.callback_query(
+    AttachHousingOfficeFSM.waiting_for_housing_office,
+    F.data.startswith("select_housing_office:"),
+)
+async def select_housing_office(callback: CallbackQuery, state: FSMContext):
+    housing_office_id = int(callback.data.split(":")[1])
+    data = await state.get_data()
+    house_id = data["house_id"]
+
+    async with async_session() as session:
+        await set_housing_office_for_house(session, house_id, housing_office_id)
+        await callback.message.edit_text("✅ ЖЭУ успешно привязано к дому.")
+        # Можно добавить обновление информации о доме, если нужно
+
     await state.clear()
     await callback.answer()

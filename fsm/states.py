@@ -44,3 +44,7 @@ class AddCityFSM(StatesGroup):
 
 class SettingsFSM(StatesGroup):
     waiting_for_city_settings = State()
+
+
+class AttachHousingOfficeFSM(StatesGroup):
+    waiting_for_housing_office = State()

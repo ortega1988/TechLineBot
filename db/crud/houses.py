@@ -89,3 +89,14 @@ async def get_entrances_by_house(
         )
     ).scalars()
     return result.all()
+
+
+async def set_housing_office_for_house(
+    session: AsyncSession, house_id: int, housing_office_id: int
+) -> Optional[House]:
+    house = await get_house_by_id(session, house_id)
+    if house:
+        house.housing_office_id = housing_office_id
+        await session.commit()
+        await session.refresh(house)
+    return house

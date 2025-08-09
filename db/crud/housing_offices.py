@@ -49,6 +49,15 @@ async def get_all_housing_offices(session: AsyncSession) -> Sequence[HousingOffi
     return result.scalars().all()
 
 
+async def get_housing_offices_by_city(
+    session: AsyncSession, city_id: int
+) -> Sequence[HousingOffice]:
+    result = await session.execute(
+        select(HousingOffice).where(HousingOffice.city_id == city_id)
+    )
+    return result.scalars().all()
+
+
 async def update_housing_office(
     session: AsyncSession, office_id: int, **kwargs
 ) -> Optional[HousingOffice]:
