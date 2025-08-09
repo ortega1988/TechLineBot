@@ -1,5 +1,6 @@
-import logging
 import asyncio
+import logging
+
 from playwright.async_api import async_playwright
 
 
@@ -11,7 +12,7 @@ async def prepare_storage():
         user_data_dir="./user_data",
         headless=False,
         slow_mo=50,
-        args=["--start-maximized"]
+        args=["--start-maximized"],
     )
     page = await browser.new_page()
 
@@ -26,5 +27,5 @@ async def prepare_storage():
     await playwright.stop()
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     asyncio.run(prepare_storage())

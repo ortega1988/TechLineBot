@@ -1,8 +1,10 @@
-from typing import Optional
 from collections.abc import Sequence
+from typing import Optional
+
 from sqlalchemy import select
-from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.engine import ScalarResult
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from db.models import HouseEntrance
 
 

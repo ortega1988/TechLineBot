@@ -1,26 +1,31 @@
-from aiogram import Router, F
-from aiogram.types import CallbackQuery, Message, InlineKeyboardMarkup, InlineKeyboardButton
+from aiogram import F, Router
 from aiogram.fsm.context import FSMContext
+from aiogram.types import (
+    CallbackQuery,
+    InlineKeyboardButton,
+    InlineKeyboardMarkup,
+    Message,
+)
 
-from fsm.states import AddHousingOffice2GISFSM
-from db.db import async_session
+from db.crud.cities import get_city_by_id
 from db.crud.housing_offices import create_housing_office
 from db.crud.users import get_user_by_id
-from db.crud.cities import get_city_by_id
-from utils.parser import parse_housing_office_from_2gis
-from utils.address import resolve_city_zone_from_comment
 from db.crud.zones import get_zones_by_area, get_zones_by_city
-from keyboards.inline import get_admin_menu
-from keyboards.inline import get_confirm_add_housing_office_keyboard
-
+from db.db import async_session
+from fsm.states import AddHousingOffice2GISFSM
+from keyboards.inline import get_admin_menu, get_confirm_add_housing_office_keyboard
+from utils.address import resolve_city_zone_from_comment
+from utils.parser import parse_housing_office_from_2gis
 
 router = Router()
+
 
 @router.callback_query(F.data == "add_housing_office")
 async def start_add(callback: CallbackQuery, state: FSMContext):
     await callback.message.answer("Введите <b>название ЖЭУ</b> для поиска в 2ГИС:")
     await state.set_state(AddHousingOffice2GISFSM.waiting_for_name)
     await callback.answer()
+
 
 @router.message(AddHousingOffice2GISFSM.waiting_for_name)
 async def process_name(message: Message, state: FSMContext):
@@ -38,26 +43,36 @@ async def process_name(message: Message, state: FSMContext):
 
         city = await get_city_by_id(session, user.default_city_id)
         if not city:
-            await message.answer("❌ Не удалось найти город по умолчанию. Обратитесь к администратору.")
+            await message.answer(
+                "❌ Не удалось найти город по умолчанию. Обратитесь к администратору."
+            )
             await state.clear()
             return
 
         city_url = city.url
         name = message.text.strip()
 
-        await message.answer(f"🔎 Ищем ЖЭУ <b>{name}</b> в городе <b>{city.name}</b> через 2ГИС...")
+        await message.answer(
+            f"🔎 Ищем ЖЭУ <b>{name}</b> в городе <b>{city.name}</b> через 2ГИС..."
+        )
 
         result = await parse_housing_office_from_2gis(city_url=city_url, org_name=name)
         if not result:
-            await message.answer("❌ ЖЭУ не найдено в 2ГИС. Попробуйте еще раз или обратитесь к администратору.")
+            await message.answer(
+                "❌ ЖЭУ не найдено в 2ГИС. Попробуйте еще раз или обратитесь к администратору."
+            )
             await state.clear()
             return
 
         # Найти район по комментарию — только если он действительно есть!
         zones = await get_zones_by_city(session, city.id)
         zone_obj = next(
-            (zone for zone in zones if zone.name.lower() in result.get("comments", "").lower()),
-            None
+            (
+                zone
+                for zone in zones
+                if zone.name.lower() in result.get("comments", "").lower()
+            ),
+            None,
         )
         if not zone_obj:
             await message.answer(
@@ -71,8 +86,12 @@ async def process_name(message: Message, state: FSMContext):
         parsed_address = result["address"]  # например: "Улица Адоратского, 12а, 1 этаж"
 
         # Тыдели из address только улицу, номер и этаж (можно через split и join)
-        address_parts = [city_name, zone_name] + [x.strip() for x in parsed_address.split(",")]
-        formatted_address = ", ".join(address_parts)  # Казань, Ново-Савиновский, Улица Адоратского, 12а, 1 этаж
+        address_parts = [city_name, zone_name] + [
+            x.strip() for x in parsed_address.split(",")
+        ]
+        formatted_address = ", ".join(
+            address_parts
+        )  # Казань, Ново-Савиновский, Улица Адоратского, 12а, 1 этаж
 
         # В комментарии всегда только это:
         comments = "Добавлено с 2ГИС"
@@ -87,18 +106,24 @@ async def process_name(message: Message, state: FSMContext):
             f"⏰ <b>Время работы:</b> {result['working_hours'] or '—'}\n"
             f"💬 <b>Комментарии:</b> {comments}"
         )
-        await message.answer(text, reply_markup=get_confirm_add_housing_office_keyboard())
+        await message.answer(
+            text, reply_markup=get_confirm_add_housing_office_keyboard()
+        )
         await state.set_state(AddHousingOffice2GISFSM.confirming_add)
 
 
-@router.callback_query(AddHousingOffice2GISFSM.confirming_add, F.data == "add_housing_office_confirm")
+@router.callback_query(
+    AddHousingOffice2GISFSM.confirming_add, F.data == "add_housing_office_confirm"
+)
 async def confirm_add(callback: CallbackQuery, state: FSMContext):
     data = await state.get_data()
     result = data["parsed"]
 
     async with async_session() as session:
         user = await get_user_by_id(session, callback.from_user.id)
-        city_id, zone_id = await resolve_city_zone_from_comment(session, user, result.get("comments", ""))
+        city_id, zone_id = await resolve_city_zone_from_comment(
+            session, user, result.get("comments", "")
+        )
 
         if not city_id or not zone_id:
             await state.clear()
@@ -114,9 +139,11 @@ async def confirm_add(callback: CallbackQuery, state: FSMContext):
             comments="добавлено с 2ГИС",
             working_hours=result.get("working_hours", ""),
             phone=result.get("phone", ""),
-            email="",       # если email не парсится
-            photo_url="",   # если фото не парсится
+            email="",  # если email не парсится
+            photo_url="",  # если фото не парсится
         )
-    await callback.message.edit_text("✅ ЖЭУ успешно добавлено!", reply_markup=get_admin_menu())
+    await callback.message.edit_text(
+        "✅ ЖЭУ успешно добавлено!", reply_markup=get_admin_menu()
+    )
     await state.clear()
     await callback.answer()

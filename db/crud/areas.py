@@ -1,9 +1,9 @@
+from collections.abc import Sequence
 from typing import Optional
 
 from sqlalchemy import select
-from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.engine import Result
-from collections.abc import Sequence
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from db.models import Area
 
@@ -30,6 +30,10 @@ async def create_area(
     return area
 
 
-async def get_areas_by_branch_id(session: AsyncSession, branch_id: int) -> Sequence[Area]:
-    result = await session.execute(select(Area).where(Area.branch_id == branch_id).order_by(Area.id))
+async def get_areas_by_branch_id(
+    session: AsyncSession, branch_id: int
+) -> Sequence[Area]:
+    result = await session.execute(
+        select(Area).where(Area.branch_id == branch_id).order_by(Area.id)
+    )
     return result.scalars().all()

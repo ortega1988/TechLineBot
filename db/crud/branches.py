@@ -1,18 +1,22 @@
-from typing import Optional
-from sqlalchemy import select
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.engine import Result
-from db.models import Branch
 from collections.abc import Sequence
+from typing import Optional
+
+from sqlalchemy import select
+from sqlalchemy.engine import Result
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from db.models import Branch
 
 
 async def get_branch_by_id(session: AsyncSession, branch_id: int) -> Optional[Branch]:
     result = await session.execute(select(Branch).where(Branch.id == branch_id))
     return result.scalar_one_or_none()
 
+
 async def get_branch_by_name(session: AsyncSession, name: str) -> Optional[Branch]:
     result = await session.execute(select(Branch).where(Branch.name == name))
     return result.scalar_one_or_none()
+
 
 async def create_branch(session: AsyncSession, name: str, branch_id: int) -> Branch:
     branch = Branch(id=branch_id, name=name)

@@ -1,29 +1,27 @@
-from aiogram import Router, F
-from aiogram.types import CallbackQuery, Message
+from aiogram import F, Router
 from aiogram.fsm.context import FSMContext
+from aiogram.types import CallbackQuery, Message
 
-from fsm.states import AccessRequest
-from keyboards.inline import select_role_keyboard, build_approval_keyboard
-from utils.messages import build_access_request_message
-
-from db.db import async_session
-from db.crud.users import (
-    get_user_by_id,
-    get_super_admin,
-    get_rn_by_branch,
-    get_rgks_by_area,
-    set_user_role
-)
 from db.crud.areas import get_area_by_id
 from db.crud.branches import get_branch_by_id
-
+from db.crud.users import (
+    get_rgks_by_area,
+    get_rn_by_branch,
+    get_super_admin,
+    get_user_by_id,
+    set_user_role,
+)
+from db.db import async_session
+from fsm.states import AccessRequest
+from keyboards.inline import build_approval_keyboard, select_role_keyboard
+from utils.messages import build_access_request_message
 
 router = Router()
 
 ROLES = {
-    "role_rn": 1,     # Руководитель направления
-    "role_rgks": 2,   # Руководитель группы КС
-    "role_si": 3      # Старший инженер
+    "role_rn": 1,  # Руководитель направления
+    "role_rgks": 2,  # Руководитель группы КС
+    "role_si": 3,  # Старший инженер
 }
 
 
@@ -31,8 +29,7 @@ ROLES = {
 async def start_access(callback: CallbackQuery, state: FSMContext):
     await state.set_state(AccessRequest.selecting_role)
     await callback.message.answer(
-        "👤 Кем вы хотите быть в системе?",
-        reply_markup=select_role_keyboard()
+        "👤 Кем вы хотите быть в системе?", reply_markup=select_role_keyboard()
     )
     await callback.answer()
 
@@ -78,7 +75,7 @@ async def handle_area_input(message: Message, state: FSMContext):
                 await message.bot.send_message(
                     chat_id=admin.id,
                     text=build_access_request_message(user, "РН", area_input),
-                    reply_markup=build_approval_keyboard(user.id, role_id, area_input)
+                    reply_markup=build_approval_keyboard(user.id, role_id, area_input),
                 )
                 await message.answer("✅ Запрос отправлен администратору.")
             else:
@@ -97,7 +94,7 @@ async def handle_area_input(message: Message, state: FSMContext):
                 await message.bot.send_message(
                     chat_id=target.id,
                     text=build_access_request_message(user, "РГКС", area_input),
-                    reply_markup=build_approval_keyboard(user.id, role_id, area_input)
+                    reply_markup=build_approval_keyboard(user.id, role_id, area_input),
                 )
                 await message.answer("✅ Запрос отправлен руководителю направления.")
             else:
@@ -115,7 +112,7 @@ async def handle_area_input(message: Message, state: FSMContext):
                 await message.bot.send_message(
                     chat_id=target.id,
                     text=build_access_request_message(user, "СИ", area_input),
-                    reply_markup=build_approval_keyboard(user.id, role_id, area_input)
+                    reply_markup=build_approval_keyboard(user.id, role_id, area_input),
                 )
                 await message.answer("✅ Запрос отправлен руководителю группы.")
             else:

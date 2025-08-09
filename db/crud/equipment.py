@@ -1,8 +1,10 @@
-from typing import Optional
 from collections.abc import Sequence
+from typing import Optional
+
 from sqlalchemy import select
-from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.engine import ScalarResult
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from db.models import EntranceEquipment
 
 
@@ -22,7 +24,9 @@ async def get_equipment_by_entrance(
 ) -> Sequence[EntranceEquipment]:
     result: ScalarResult[EntranceEquipment] = (
         await session.execute(
-            select(EntranceEquipment).where(EntranceEquipment.entrance_id == entrance_id)
+            select(EntranceEquipment).where(
+                EntranceEquipment.entrance_id == entrance_id
+            )
         )
     ).scalars()
     return result.all()

@@ -1,7 +1,10 @@
 from typing import Optional, Sequence
+
+from sqlalchemy import delete, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, update, delete
+
 from db.models import HousingOffice
+
 
 async def create_housing_office(
     session: AsyncSession,
@@ -31,26 +34,30 @@ async def create_housing_office(
     await session.refresh(office)
     return office
 
-async def get_housing_office_by_id(session: AsyncSession, office_id: int) -> Optional[HousingOffice]:
-    result = await session.execute(select(HousingOffice).where(HousingOffice.id == office_id))
+
+async def get_housing_office_by_id(
+    session: AsyncSession, office_id: int
+) -> Optional[HousingOffice]:
+    result = await session.execute(
+        select(HousingOffice).where(HousingOffice.id == office_id)
+    )
     return result.scalar_one_or_none()
+
 
 async def get_all_housing_offices(session: AsyncSession) -> Sequence[HousingOffice]:
     result = await session.execute(select(HousingOffice))
     return result.scalars().all()
 
+
 async def update_housing_office(
-    session: AsyncSession,
-    office_id: int,
-    **kwargs
+    session: AsyncSession, office_id: int, **kwargs
 ) -> Optional[HousingOffice]:
     await session.execute(
-        update(HousingOffice)
-        .where(HousingOffice.id == office_id)
-        .values(**kwargs)
+        update(HousingOffice).where(HousingOffice.id == office_id).values(**kwargs)
     )
     await session.commit()
     return await get_housing_office_by_id(session, office_id)
+
 
 async def delete_housing_office(session: AsyncSession, office_id: int) -> None:
     await session.execute(delete(HousingOffice).where(HousingOffice.id == office_id))

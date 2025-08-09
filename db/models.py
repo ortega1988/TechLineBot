@@ -1,20 +1,26 @@
+from datetime import datetime, timedelta, timezone
+
 from sqlalchemy import (
-    String, Integer, ForeignKey, Text, Boolean,
-    DateTime, SmallInteger, BigInteger, UniqueConstraint
+    BigInteger,
+    Boolean,
+    DateTime,
+    ForeignKey,
+    Integer,
+    SmallInteger,
+    String,
+    Text,
+    UniqueConstraint,
 )
-from sqlalchemy.orm import (
-    Mapped, mapped_column, relationship, DeclarativeBase
-)
-from datetime import datetime, timezone, timedelta
+from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
 from db.base import Base
+
 # Часовой пояс Москва (UTC+3)
 MSK = timezone(timedelta(hours=3))
 
 
 def msk_now():
     return datetime.now(MSK)
-
 
 
 class Role(Base):
@@ -44,10 +50,14 @@ class Zone(Base):
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     name: Mapped[str] = mapped_column(String(100), nullable=False)
     branch_id: Mapped[int] = mapped_column(
-        SmallInteger, ForeignKey("branches.id", ondelete="RESTRICT", onupdate="CASCADE"), nullable=False
+        SmallInteger,
+        ForeignKey("branches.id", ondelete="RESTRICT", onupdate="CASCADE"),
+        nullable=False,
     )
     city_id: Mapped[int] = mapped_column(
-        Integer, ForeignKey("cities.id", ondelete="RESTRICT", onupdate="CASCADE"), nullable=False
+        Integer,
+        ForeignKey("cities.id", ondelete="RESTRICT", onupdate="CASCADE"),
+        nullable=False,
     )
     area_id: Mapped[str] = mapped_column(
         String(10), ForeignKey("areas.id", ondelete="CASCADE"), nullable=False
@@ -59,19 +69,22 @@ class Zone(Base):
     houses = relationship("House", back_populates="zone", cascade="all, delete")
 
 
-
 class Area(Base):
     __tablename__ = "areas"
     id: Mapped[str] = mapped_column(String(10), primary_key=True)
     name: Mapped[str] = mapped_column(String(100), nullable=False)
     branch_id: Mapped[int] = mapped_column(
-        SmallInteger, ForeignKey("branches.id", ondelete="RESTRICT", onupdate="CASCADE"), nullable=False
+        SmallInteger,
+        ForeignKey("branches.id", ondelete="RESTRICT", onupdate="CASCADE"),
+        nullable=False,
     )
 
     branch = relationship("Branch", back_populates="areas")
     zones = relationship("Zone", back_populates="area", cascade="all, delete")
     users = relationship("User", back_populates="area", foreign_keys="[User.area_id]")
-    temp_users = relationship("User", back_populates="temp_area", foreign_keys="[User.temp_area_id]")
+    temp_users = relationship(
+        "User", back_populates="temp_area", foreign_keys="[User.temp_area_id]"
+    )
     houses = relationship("House", back_populates="area")
 
 
@@ -103,13 +116,16 @@ class User(Base):
         DateTime, default=msk_now, onupdate=msk_now
     )
     notes: Mapped[str] = mapped_column(Text, nullable=True)
-    default_city_id: Mapped[int | None] = mapped_column(Integer, ForeignKey("cities.id"), nullable=True)
-
+    default_city_id: Mapped[int | None] = mapped_column(
+        Integer, ForeignKey("cities.id"), nullable=True
+    )
 
     role = relationship("Role", back_populates="users")
     branch = relationship("Branch", back_populates="users")
     area = relationship("Area", back_populates="users", foreign_keys=[area_id])
-    temp_area = relationship("Area", back_populates="temp_users", foreign_keys=[temp_area_id])
+    temp_area = relationship(
+        "Area", back_populates="temp_users", foreign_keys=[temp_area_id]
+    )
 
 
 class House(Base):
@@ -152,7 +168,9 @@ class House(Base):
     zone = relationship("Zone", back_populates="houses")
 
     entrances_rel = relationship("HouseEntrance", back_populates="house")
-    housing_office_id: Mapped[int] = mapped_column(ForeignKey("housing_offices.id"), nullable=True)
+    housing_office_id: Mapped[int] = mapped_column(
+        ForeignKey("housing_offices.id"), nullable=True
+    )
     housing_office = relationship("HousingOffice")
 
 
@@ -189,7 +207,9 @@ class HouseEntrance(Base):
     house = relationship("House", back_populates="entrances_rel")
     equipment = relationship("EntranceEquipment", back_populates="entrance")
     photos = relationship("EntrancePhoto", back_populates="entrance")
-    flats_ranges = relationship("EntranceFlatsRange", back_populates="entrance", cascade="all, delete")
+    flats_ranges = relationship(
+        "EntranceFlatsRange", back_populates="entrance", cascade="all, delete"
+    )
 
 
 class EntranceFlatsRange(Base):
@@ -257,12 +277,11 @@ class City(Base):
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     name: Mapped[str] = mapped_column(String(100), unique=True, nullable=False)
     url: Mapped[str] = mapped_column(String(500), nullable=False)
-    
 
     branch_id: Mapped[int] = mapped_column(
         SmallInteger,
         ForeignKey("branches.id", ondelete="RESTRICT", onupdate="CASCADE"),
-        nullable=False
+        nullable=False,
     )
 
     branch = relationship("Branch", back_populates="cities")
@@ -288,7 +307,7 @@ class HousingOffice(Base):
     zone = relationship("Zone")
 
     __table_args__ = (
-        UniqueConstraint("name", "address", "city_id", "zone_id", name="uq_housing_office"),
+        UniqueConstraint(
+            "name", "address", "city_id", "zone_id", name="uq_housing_office"
+        ),
     )
-
-

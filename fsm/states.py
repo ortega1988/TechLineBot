@@ -1,5 +1,6 @@
 from aiogram.fsm.state import State, StatesGroup
 
+
 class AccessRequest(StatesGroup):
     selecting_role = State()
     entering_area = State()
@@ -16,6 +17,7 @@ class AddZoneFSM(StatesGroup):
 class AddGKSFSM(StatesGroup):
     waiting_for_region = State()
     waiting_for_number = State()
+
 
 class FindHouseFSM(StatesGroup):
     waiting_for_address = State()

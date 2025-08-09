@@ -1,25 +1,26 @@
-from aiogram import Router, F
-from aiogram.types import CallbackQuery, Message
-from aiogram.fsm.context import FSMContext
-
-from fsm.states import FindHouseFSM
-from db.db import async_session
-from db.crud.users import get_user_by_id, set_default_city_for_user
-from db.crud.houses import get_house_by_address, get_house_by_id
-from db.crud.housing_offices import get_housing_office_by_id, create_housing_office
-from db.crud.parsed_houses import save_parsed_house_to_db
-from db.crud.parsed_houses import get_house_parsed_view
-from db.crud.zones import get_zones_by_area_and_city
-from db.crud.cities import get_cities_by_area, get_city_by_id, get_cities_by_branch
-from keyboards.inline import get_confirm_add_keyboard, get_list_houses_menu, get_house_cities_keyboard
-from utils.messages import build_house_address_info
-from utils.parser import parse_house_from_2gis
-from utils.address import detect_city_and_zone_by_address
-
-from utils.messages import build_parsed_house_info
-
-from datetime import datetime
 import re
+from datetime import datetime
+
+from aiogram import F, Router
+from aiogram.fsm.context import FSMContext
+from aiogram.types import CallbackQuery, Message
+
+from db.crud.cities import get_cities_by_area, get_cities_by_branch, get_city_by_id
+from db.crud.houses import get_house_by_address, get_house_by_id
+from db.crud.housing_offices import create_housing_office, get_housing_office_by_id
+from db.crud.parsed_houses import get_house_parsed_view, save_parsed_house_to_db
+from db.crud.users import get_user_by_id, set_default_city_for_user
+from db.crud.zones import get_zones_by_area_and_city
+from db.db import async_session
+from fsm.states import FindHouseFSM
+from keyboards.inline import (
+    get_confirm_add_keyboard,
+    get_house_cities_keyboard,
+    get_list_houses_menu,
+)
+from utils.address import detect_city_and_zone_by_address
+from utils.messages import build_house_address_info, build_parsed_house_info
+from utils.parser import parse_house_from_2gis
 
 router = Router()
 
@@ -38,7 +39,7 @@ async def start_find_house(callback: CallbackQuery, state: FSMContext):
             cities = await get_cities_by_branch(session, user.branch_id)
             await callback.message.answer(
                 "Выберите город по умолчанию для поиска:",
-                reply_markup=get_house_cities_keyboard(cities)
+                reply_markup=get_house_cities_keyboard(cities),
             )
             await state.set_state(FindHouseFSM.waiting_for_city_auto)
             await callback.answer()
@@ -53,7 +54,9 @@ async def start_find_house(callback: CallbackQuery, state: FSMContext):
         await callback.answer()
 
 
-@router.callback_query(FindHouseFSM.waiting_for_city_auto, F.data.startswith("find_house_city_"))
+@router.callback_query(
+    FindHouseFSM.waiting_for_city_auto, F.data.startswith("find_house_city_")
+)
 async def set_default_city_and_continue(callback: CallbackQuery, state: FSMContext):
     city_id = int(callback.data.replace("find_house_city_", ""))
     user_id = callback.from_user.id
@@ -88,7 +91,9 @@ async def input_address(message: Message, state: FSMContext):
 
     async with async_session() as session:
         # Получаем все районы (zones) для выбранного города и area_id пользователя
-        zones = await get_zones_by_area_and_city(session, area_id=area_id, city_id=city_id)
+        zones = await get_zones_by_area_and_city(
+            session, area_id=area_id, city_id=city_id
+        )
         if not zones:
             await message.answer("❌ Ваша ГКС не обслуживает этот город.")
             await state.clear()
@@ -104,7 +109,7 @@ async def input_address(message: Message, state: FSMContext):
                 area_id=area_id,
                 zone_id=zone_id,
                 street=street,
-                house_number=house_number
+                house_number=house_number,
             )
             if house:
                 found_zone = zone_id
@@ -127,9 +132,11 @@ async def input_address(message: Message, state: FSMContext):
                 db_zone_name=zone_name,
                 notes=parsed["notes"],
                 updated_at=parsed["updated_at"],
-                jeu_address=parsed["jeu_address"]
+                jeu_address=parsed["jeu_address"],
             )
-            markup = get_list_houses_menu(housing_office_id=house.housing_office_id, house_id=house.id)
+            markup = get_list_houses_menu(
+                housing_office_id=house.housing_office_id, house_id=house.id
+            )
             await message.answer(text, reply_markup=markup)
             await state.clear()
             return
@@ -139,8 +146,7 @@ async def input_address(message: Message, state: FSMContext):
         await message.answer("🔍 Дом не найден в базе, ищем в 2ГИС...")
 
         info = await parse_house_from_2gis(
-            city_url=city.url,
-            search_query=f"{street} {house_number}"
+            city_url=city.url, search_query=f"{street} {house_number}"
         )
         if info is None:
             await message.answer("❌ Дом не найден в 2ГИС.")
@@ -148,33 +154,47 @@ async def input_address(message: Message, state: FSMContext):
             return
 
         # Определяем город и район по адресу (из info)
-        city_obj, zone_obj = await detect_city_and_zone_by_address(session, info.get("address", ""))
+        city_obj, zone_obj = await detect_city_and_zone_by_address(
+            session, info.get("address", "")
+        )
 
         if city_obj is None or city_obj.id != city_id:
-            await message.answer("❌ Город из 2ГИС не совпадает с выбранным городом пользователя.")
+            await message.answer(
+                "❌ Город из 2ГИС не совпадает с выбранным городом пользователя."
+            )
             await state.clear()
             return
 
         if zone_obj is None or zone_obj.id not in zone_ids:
-            await message.answer("❌ Район этого дома не входит в вашу зону ответственности.")
+            await message.answer(
+                "❌ Район этого дома не входит в вашу зону ответственности."
+            )
             await state.clear()
             return
 
         # Разбор title для улицы и номера
-        title = info.get('title', '')
-        if ',' in title:
-            street_part, number_part = title.rsplit(',', 1)
-            parsed_street = street_part.replace('Улица', '').strip()
+        title = info.get("title", "")
+        if "," in title:
+            street_part, number_part = title.rsplit(",", 1)
+            parsed_street = street_part.replace("Улица", "").strip()
             parsed_house_number = number_part.strip()
         else:
             parsed_street = street
             parsed_house_number = house_number
 
-        entrances_count = int(re.search(r'(\d+)', info.get('entrances', '')).group(1)) if re.search(r'(\d+)', info.get('entrances', '')) else 1
-        floors_count = int(re.search(r'(\d+)', info.get('floors', '')).group(1)) if re.search(r'(\d+)', info.get('floors', '')) else 1
+        entrances_count = (
+            int(re.search(r"(\d+)", info.get("entrances", "")).group(1))
+            if re.search(r"(\d+)", info.get("entrances", ""))
+            else 1
+        )
+        floors_count = (
+            int(re.search(r"(\d+)", info.get("floors", "")).group(1))
+            if re.search(r"(\d+)", info.get("floors", ""))
+            else 1
+        )
 
         entrance_info = {}
-        for item in info.get('apartments', []):
+        for item in info.get("apartments", []):
             parts = item.split(": квартиры ")
             if len(parts) == 2:
                 entrance_number = int(parts[0].split()[0])
@@ -183,20 +203,20 @@ async def input_address(message: Message, state: FSMContext):
 
         text = build_house_address_info(
             city_name=city_obj.name,
-            zone_name=zone_obj.name if zone_obj else 'Без района',
+            zone_name=zone_obj.name if zone_obj else "Без района",
             street=parsed_street,
             house_number=parsed_house_number,
             floors=floors_count,
             entrances=entrances_count,
             entrance_info=entrance_info,
             notes="Добавлено с 2ГИС",
-            updated_at=datetime.now().strftime("%d.%m.%Y %H:%M")
+            updated_at=datetime.now().strftime("%d.%m.%Y %H:%M"),
         )
 
         await message.answer(text, reply_markup=get_confirm_add_keyboard())
 
         await state.update_data(
-                parsed_house = {
+            parsed_house={
                 "title": f"{parsed_street} {parsed_house_number}",
                 "floors": f"{floors_count} этажей",
                 "entrances": f"{entrances_count} подъездов",
@@ -213,8 +233,9 @@ async def input_address(message: Message, state: FSMContext):
         await state.set_state(FindHouseFSM.confirming_add)
 
 
-
-@router.callback_query(FindHouseFSM.confirming_add, F.data == "add_housing_office_confirm")
+@router.callback_query(
+    FindHouseFSM.confirming_add, F.data == "add_housing_office_confirm"
+)
 async def confirm_add(callback: CallbackQuery, state: FSMContext):
     data = await state.get_data()
     result = data["parsed"]
@@ -233,11 +254,11 @@ async def confirm_add(callback: CallbackQuery, state: FSMContext):
             comments=result.get("comments", ""),
             working_hours=result.get("working_hours", ""),
             phone=result.get("phone", ""),
-            email="",       
-            photo_url="",   
+            email="",
+            photo_url="",
         )
-    await callback.message.edit_text("✅ ЖЭУ успешно добавлено!", reply_markup=get_admin_menu())
+    await callback.message.edit_text(
+        "✅ ЖЭУ успешно добавлено!", reply_markup=get_admin_menu()
+    )
     await state.clear()
     await callback.answer()
-
-

@@ -1,9 +1,9 @@
 import re
 
 
-
-
-def build_access_request_message(user: dict, role_name: str, target_area: str | None = None) -> str:
+def build_access_request_message(
+    user: dict, role_name: str, target_area: str | None = None
+) -> str:
     """
     Формирует сообщение для уведомления о запросе доступа.
 
@@ -34,20 +34,19 @@ def format_housing_office_block(jeu) -> str:
 
     # Если это словарь/объект
     parts = []
-    if jeu.get('name'):
+    if jeu.get("name"):
         parts.append(f"<b>{jeu['name']}</b>")
-    if jeu.get('address'):
+    if jeu.get("address"):
         parts.append(f"📍 {jeu['address']}")
-    if jeu.get('phone'):
+    if jeu.get("phone"):
         parts.append(f"☎️ {jeu['phone']}")
-    if jeu.get('working_hours'):
+    if jeu.get("working_hours"):
         parts.append(f"⏰ {jeu['working_hours']}")
-    if jeu.get('comments'):
+    if jeu.get("comments"):
         parts.append(f"💬 {jeu['comments']}")
     if not parts:
         return "нет информации"
     return "\n".join(parts)
-
 
 
 def build_parsed_house_info(
@@ -56,36 +55,36 @@ def build_parsed_house_info(
     db_zone_name: str,
     notes: str = None,
     updated_at: str = None,
-    jeu_address: str = "нет информации"
+    jeu_address: str = "нет информации",
 ) -> str:
     # Адресные данные
-    address = parsed_data.get('address', 'Не указано')
-    title = parsed_data.get('title', 'Не указано')
-    floors_text = parsed_data.get('floors', 'Не указано')
-    entrances_text = parsed_data.get('entrances', 'Не указано')
-    apartments_list = parsed_data.get('apartments', [])
+    address = parsed_data.get("address", "Не указано")
+    title = parsed_data.get("title", "Не указано")
+    floors_text = parsed_data.get("floors", "Не указано")
+    entrances_text = parsed_data.get("entrances", "Не указано")
+    apartments_list = parsed_data.get("apartments", [])
 
     # Парсим улицу и номер
-    street_match = re.search(r'^(.*?)\s+(\S+)$', title)
+    street_match = re.search(r"^(.*?)\s+(\S+)$", title)
     if street_match:
         street = street_match.group(1).strip()
         house_number = street_match.group(2).strip()
     else:
         street = title
-        house_number = ''
+        house_number = ""
 
     # Количество подъездов
-    entrances_match = re.search(r'(\d+)', entrances_text)
+    entrances_match = re.search(r"(\d+)", entrances_text)
     entrances_count = int(entrances_match.group(1)) if entrances_match else 1
 
     # Количество этажей
-    floors_match = re.search(r'(\d+)', floors_text)
-    floors_count = int(floors_match.group(1)) if floors_match else 'Не указано'
+    floors_match = re.search(r"(\d+)", floors_text)
+    floors_count = int(floors_match.group(1)) if floors_match else "Не указано"
 
     # Разбор квартир по подъездам
     entrances_info = {}
     for item in apartments_list:
-        apt_match = re.match(r'(\d+) подъезд: квартиры (.+)', item)
+        apt_match = re.match(r"(\d+) подъезд: квартиры (.+)", item)
         if apt_match:
             entrance_number = int(apt_match.group(1))
             flats = apt_match.group(2).strip()
@@ -128,7 +127,7 @@ def build_house_address_info(
     entrance_info: dict[int, str] = None,
     jeu_address: str = "нет информации",
     notes: str = None,
-    updated_at: str = None
+    updated_at: str = None,
 ) -> str:
     text = (
         f"🏠 <b>Дом:</b>\n"
@@ -140,9 +139,7 @@ def build_house_address_info(
     if entrance_info:
         for entrance_number in sorted(entrance_info.keys()):
             flats = entrance_info[entrance_number]
-            text += (
-                f"🚪 <b>Подъезд {entrance_number}</b>: {floors} этажей, квартиры {flats}\n"
-            )
+            text += f"🚪 <b>Подъезд {entrance_number}</b>: {floors} этажей, квартиры {flats}\n"
     else:
         text += "🚪 Нет данных о подъездах.\n"
 
@@ -153,4 +150,3 @@ def build_house_address_info(
     )
 
     return text
-

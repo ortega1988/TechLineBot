@@ -1,7 +1,9 @@
 import asyncio
+
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
-from db.models import Role
+
 from db.db import async_session  # если у тебя есть уже сессия, иначе определи engine
+from db.models import Role
 
 # Начальные роли (id, name, description)
 ROLES = [
@@ -12,6 +14,7 @@ ROLES = [
     (50, "Новичек", "незарегестрированный пользователь"),
 ]
 
+
 async def seed_roles():
     async with async_session() as session:
         for id_, name, desc in ROLES:
@@ -20,6 +23,7 @@ async def seed_roles():
                 session.add(Role(id=id_, name=name, description=desc))
         await session.commit()
     print("Roles seeded!")
+
 
 if __name__ == "__main__":
     asyncio.run(seed_roles())

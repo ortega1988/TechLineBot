@@ -1,13 +1,17 @@
 import re
-from typing import Optional, Dict, List, Tuple
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
-from db.models import House, HouseEntrance, EntranceFlatsRange, Zone, City
 from datetime import datetime
+from typing import Dict, List, Optional, Tuple
+
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
+from db.models import City, EntranceFlatsRange, House, HouseEntrance, Zone
 
-def extract_house_meta(parsed_data: dict) -> Tuple[str, str, int, int, Dict[int, List[Tuple[int, int]]]]:
+
+def extract_house_meta(
+    parsed_data: dict,
+) -> Tuple[str, str, int, int, Dict[int, List[Tuple[int, int]]]]:
     title = parsed_data.get("title", "")
     floors_text = parsed_data.get("floors", "")
     entrances_text = parsed_data.get("entrances", "")
@@ -46,15 +50,17 @@ async def save_parsed_house_to_db(
     area_id: str,
     zone_id: int,
     created_by: int,
-    notes: Optional[str] = None
+    notes: Optional[str] = None,
 ) -> int:
-    street, house_number, floors, entrances_count, entrances_info = extract_house_meta(parsed_data)
+    street, house_number, floors, entrances_count, entrances_info = extract_house_meta(
+        parsed_data
+    )
 
     # Проверка на существующий дом
     stmt = select(House).where(
         House.area_id == area_id,
         House.street == street,
-        House.house_number == house_number
+        House.house_number == house_number,
     )
     existing = (await session.execute(stmt)).scalar_one_or_none()
     if existing:
@@ -97,15 +103,12 @@ async def save_parsed_house_to_db(
         await session.flush()  # получаем he.id
 
         for start, end in flats_ranges:
-            session.add(EntranceFlatsRange(
-                entrance_id=he.id,
-                start_flat=start,
-                end_flat=end
-            ))
+            session.add(
+                EntranceFlatsRange(entrance_id=he.id, start_flat=start, end_flat=end)
+            )
 
     await session.commit()
     return house.id
-
 
 
 async def get_house_parsed_view(session: AsyncSession, house_id: int) -> Optional[Dict]:
@@ -114,7 +117,7 @@ async def get_house_parsed_view(session: AsyncSession, house_id: int) -> Optiona
         .where(House.id == house_id)
         .options(
             selectinload(House.zone).selectinload(Zone.city),
-            selectinload(House.entrances_rel).selectinload(HouseEntrance.flats_ranges)
+            selectinload(House.entrances_rel).selectinload(HouseEntrance.flats_ranges),
         )
     )
     result = await session.execute(stmt)
@@ -128,14 +131,23 @@ async def get_house_parsed_view(session: AsyncSession, house_id: int) -> Optiona
 
     apartments = []
     for entrance in sorted(house.entrances_rel, key=lambda e: e.entrance_number):
-        ranges = [f"{r.start_flat}–{r.end_flat}" for r in sorted(entrance.flats_ranges, key=lambda r: r.start_flat)]
+        ranges = [
+            f"{r.start_flat}–{r.end_flat}"
+            for r in sorted(entrance.flats_ranges, key=lambda r: r.start_flat)
+        ]
         if ranges:
-            apartments.append(f"{entrance.entrance_number} подъезд: квартиры {', '.join(ranges)}")
+            apartments.append(
+                f"{entrance.entrance_number} подъезд: квартиры {', '.join(ranges)}"
+            )
 
     city = house.zone.city.name if house.zone and house.zone.city else "неизвестно"
     zone = house.zone.name if house.zone else "неизвестно"
     address = f"{city}, {zone}"
-    updated_at = house.updated_at.strftime("%d.%m.%Y %H:%M") if house.updated_at else "Не указано"
+    updated_at = (
+        house.updated_at.strftime("%d.%m.%Y %H:%M")
+        if house.updated_at
+        else "Не указано"
+    )
 
     return {
         "title": title,
@@ -145,5 +157,5 @@ async def get_house_parsed_view(session: AsyncSession, house_id: int) -> Optiona
         "address": address,
         "notes": house.notes or "Нет",
         "updated_at": updated_at,
-        "jeu_address": "нет информации"  # заглушка
+        "jeu_address": "нет информации",  # заглушка
     }

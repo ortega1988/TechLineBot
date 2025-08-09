@@ -1,8 +1,10 @@
-from typing import Optional
 from collections.abc import Sequence
+from typing import Optional
+
 from sqlalchemy import select
-from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.engine import ScalarResult
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from db.models import EntrancePhoto
 
 
@@ -10,9 +12,7 @@ async def get_photo_by_id(
     session: AsyncSession, photo_id: int
 ) -> Optional[EntrancePhoto]:
     result: ScalarResult[EntrancePhoto] = (
-        await session.execute(
-            select(EntrancePhoto).where(EntrancePhoto.id == photo_id)
-        )
+        await session.execute(select(EntrancePhoto).where(EntrancePhoto.id == photo_id))
     ).scalars()
     return result.first()
 

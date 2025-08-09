@@ -1,19 +1,14 @@
 from typing import Optional
 
 from sqlalchemy import select
-from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.engine import Result
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from db.models import User
 
 
-async def get_user_by_id(
-    session: AsyncSession,
-    user_id: int
-) -> Optional[User]:
-    result: Result = await session.execute(
-        select(User).where(User.id == user_id)
-    )
+async def get_user_by_id(session: AsyncSession, user_id: int) -> Optional[User]:
+    result: Result = await session.execute(select(User).where(User.id == user_id))
     return result.scalars().first()
 
 
@@ -72,38 +67,29 @@ async def set_user_role(
 
 
 async def get_super_admin(session: AsyncSession) -> Optional[User]:
+    result: Result = await session.execute(select(User).where(User.role_id == 0))
+    return result.scalars().first()
+
+
+async def get_rn_by_branch(session: AsyncSession, branch_id: str) -> Optional[User]:
     result: Result = await session.execute(
-        select(User).where(User.role_id == 0)
+        select(User).where(User.role_id == 1, User.branch_id == int(branch_id))
     )
     return result.scalars().first()
 
 
-async def get_rn_by_branch(
-    session: AsyncSession, branch_id: str
-) -> Optional[User]:
+async def get_rgks_by_area(session: AsyncSession, area_id: str) -> Optional[User]:
     result: Result = await session.execute(
-        select(User).where(
-            User.role_id == 1,
-            User.branch_id == int(branch_id)
-        )
+        select(User).where(User.role_id == 2, User.area_id == area_id)
     )
     return result.scalars().first()
 
 
-async def get_rgks_by_area(
-    session: AsyncSession, area_id: str
-) -> Optional[User]:
-    result: Result = await session.execute(
-        select(User).where(
-            User.role_id == 2,
-            User.area_id == area_id
-        )
-    )
-    return result.scalars().first()
-
-
-async def set_default_city_for_user(session: AsyncSession, user_id: int, city_id: int) -> None:
+async def set_default_city_for_user(
+    session: AsyncSession, user_id: int, city_id: int
+) -> None:
     from db.models import User
+
     user = await session.get(User, user_id)
     if user:
         user.default_city_id = city_id

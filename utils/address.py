@@ -1,14 +1,15 @@
 from typing import Optional, Tuple
+
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
-from db.models import City, Zone
+
 from db.crud.cities import get_all_cities, get_cities_by_branch
-from db.crud.zones import get_zones_by_city, get_zones_by_branch
+from db.crud.zones import get_zones_by_branch, get_zones_by_city
+from db.models import City, Zone
 
 
 async def detect_city_and_zone_by_address(
-    session: AsyncSession,
-    address: str
+    session: AsyncSession, address: str
 ) -> Tuple[Optional[City], Optional[Zone]]:
     address_lower = address.lower()
 
@@ -32,9 +33,7 @@ async def detect_city_and_zone_by_address(
 
 
 async def resolve_city_zone_from_comment(
-    session: AsyncSession,
-    user,  # объект пользователя (User)
-    comment: str
+    session: AsyncSession, user, comment: str  # объект пользователя (User)
 ):
     # Получаем все доступные города и зоны пользователя (например, по branch/area)
     branch_id = user.branch_id
@@ -43,14 +42,12 @@ async def resolve_city_zone_from_comment(
 
     # Сначала ищем ПОЛНОЕ совпадение зоны (района)
     zone_obj = next(
-        (zone for zone in zones if zone.name.lower() in comment.lower()),
-        None
+        (zone for zone in zones if zone.name.lower() in comment.lower()), None
     )
 
     # Сначала ищем ПОЛНОЕ совпадение города
     city_obj = next(
-        (city for city in cities if city.name.lower() in comment.lower()),
-        None
+        (city for city in cities if city.name.lower() in comment.lower()), None
     )
 
     # Логика: если оба найдены — проверяем, что зона принадлежит этому городу!
@@ -63,7 +60,9 @@ async def resolve_city_zone_from_comment(
 
     # Если есть только зона — ищем её город
     if zone_obj:
-        city_for_zone = next((city for city in cities if city.id == zone_obj.city_id), None)
+        city_for_zone = next(
+            (city for city in cities if city.id == zone_obj.city_id), None
+        )
         if city_for_zone:
             return city_for_zone.id, zone_obj.id
         else:
@@ -73,4 +72,3 @@ async def resolve_city_zone_from_comment(
     # Пользователь должен явно указать и район, и город в комментарии,
     # иначе возвращаем None (ЖЭУ нельзя добавить)
     return None, None
-

@@ -1,16 +1,15 @@
-import logging
 import asyncio
-from typing import Tuple, List, Optional
+import logging
 from pprint import pprint as pp
-from playwright.async_api import async_playwright, Page, BrowserContext, TimeoutError as PlaywrightTimeoutError
+from typing import List, Optional, Tuple
+
+from playwright.async_api import BrowserContext, Page
+from playwright.async_api import TimeoutError as PlaywrightTimeoutError
+from playwright.async_api import async_playwright
 
 
 def clean_text(text: str) -> str:
-    return (
-        text.replace('\xa0', ' ')
-            .replace('\u200b', '')
-            .strip()
-    )
+    return text.replace("\xa0", " ").replace("\u200b", "").strip()
 
 
 class DGisParser:
@@ -27,7 +26,7 @@ class DGisParser:
             user_data_dir=self.user_data_dir,
             headless=self.headless,
             slow_mo=50,
-            args=[]
+            args=[],
         )
         self.page = await self.browser.new_page()
         await self.page.set_viewport_size({"width": 1920, "height": 1080})
@@ -46,10 +45,14 @@ class DGisParser:
         except PlaywrightTimeoutError:
             return False
 
-    async def search_addresses(self, query: str, city_url: str) -> Tuple[List[dict], bool]:
+    async def search_addresses(
+        self, query: str, city_url: str
+    ) -> Tuple[List[dict], bool]:
         await self.page.goto(city_url)
 
-        await self.page.wait_for_selector("input[placeholder='Поиск в 2ГИС']", timeout=10000)
+        await self.page.wait_for_selector(
+            "input[placeholder='Поиск в 2ГИС']", timeout=10000
+        )
         await self.page.fill("input[placeholder='Поиск в 2ГИС']", query)
         await self.page.keyboard.press("Enter")
         await self.page.wait_for_timeout(3000)
@@ -65,16 +68,27 @@ class DGisParser:
 
             for i in range(count):
                 title = await blocks.nth(i).locator("a._1rehek").first.text_content()
-                type_ = await blocks.nth(i).locator("div._1idnaau span._oqoid").first.text_content()
-                href = await blocks.nth(i).locator("a._1rehek").first.get_attribute("href")
+                type_ = (
+                    await blocks.nth(i)
+                    .locator("div._1idnaau span._oqoid")
+                    .first.text_content()
+                )
+                href = (
+                    await blocks.nth(i).locator("a._1rehek").first.get_attribute("href")
+                )
 
                 if title and type_ and href:
                     type_ = type_.lower()
-                    if any(word in type_ for word in ["жилой дом", "многоквартирный дом", "дом"]):
-                        results.append({
-                            "title": clean_text(title),
-                            "url": f"https://2gis.ru{href.strip()}"
-                        })
+                    if any(
+                        word in type_
+                        for word in ["жилой дом", "многоквартирный дом", "дом"]
+                    ):
+                        results.append(
+                            {
+                                "title": clean_text(title),
+                                "url": f"https://2gis.ru{href.strip()}",
+                            }
+                        )
             return results, False
 
         except PlaywrightTimeoutError:
@@ -91,7 +105,7 @@ class DGisParser:
             "floors": "Не указано",
             "entrances": "Не указано",
             "apartments": [],
-            "address": ""
+            "address": "",
         }
 
         try:
@@ -101,11 +115,15 @@ class DGisParser:
             if await title_elem.is_visible():
                 info["title"] = clean_text(await title_elem.text_content())
 
-            addr_parts = await self.page.locator("div._1idnaau span._sfdp8cg").all_text_contents()
+            addr_parts = await self.page.locator(
+                "div._1idnaau span._sfdp8cg"
+            ).all_text_contents()
             if addr_parts:
-                info["address"] = clean_text(', '.join(addr_parts))
+                info["address"] = clean_text(", ".join(addr_parts))
 
-            floors_blocks = await self.page.locator("div._49kxlr span._wrdavn").all_text_contents()
+            floors_blocks = await self.page.locator(
+                "div._49kxlr span._wrdavn"
+            ).all_text_contents()
             for block in floors_blocks:
                 if "этаж" in block:
                     info["floors"] = clean_text(block)
@@ -117,12 +135,12 @@ class DGisParser:
                     info["entrances"] = clean_text(entrances_text)
 
             try:
-                toggle = self.page.locator('div._z3fqkm')
+                toggle = self.page.locator("div._z3fqkm")
                 if await toggle.is_visible():
-                    arrow = await toggle.locator('svg').get_attribute('style') or ""
-                    if 'rotate(0deg)' in arrow:
+                    arrow = await toggle.locator("svg").get_attribute("style") or ""
+                    if "rotate(0deg)" in arrow:
                         await toggle.click()
-                        await self.page.wait_for_selector('div._1ovqm446', timeout=5000)
+                        await self.page.wait_for_selector("div._1ovqm446", timeout=5000)
                         await self.page.wait_for_timeout(1000)
             except Exception:
                 pass
@@ -149,7 +167,7 @@ class DGisParser:
             "address": "",
             "working_hours": "",
             "phone": "",
-            "comments": ""
+            "comments": "",
         }
 
         try:
@@ -184,14 +202,14 @@ class DGisParser:
                 print("❗ Не найдена карточка с расписанием")
                 return info
 
-            sliders = schedule_card.locator('div._z3fqkm')
+            sliders = schedule_card.locator("div._z3fqkm")
             slider_count = await sliders.count()
             for i in range(slider_count):
                 slider = sliders.nth(i)
                 await slider.scroll_into_view_if_needed()
                 await self.page.wait_for_timeout(100)
-                arrow = await slider.locator('svg').get_attribute('style') or ""
-                if 'rotate(0deg)' in arrow:
+                arrow = await slider.locator("svg").get_attribute("style") or ""
+                if "rotate(0deg)" in arrow:
                     await slider.click(force=True)
                     await self.page.wait_for_timeout(200)
 
@@ -206,8 +224,16 @@ class DGisParser:
                 bt_count = await bt_blocks.count()
                 wh_lines = []
                 for i in range(bt_count):
-                    day = await bt_blocks.nth(i).locator("div._6odjfl").first.text_content()
-                    time = await bt_blocks.nth(i).locator("div._1jh072e bdo, div._hc7qlf").all_text_contents()
+                    day = (
+                        await bt_blocks.nth(i)
+                        .locator("div._6odjfl")
+                        .first.text_content()
+                    )
+                    time = (
+                        await bt_blocks.nth(i)
+                        .locator("div._1jh072e bdo, div._hc7qlf")
+                        .all_text_contents()
+                    )
                     time_str = ", ".join([clean_text(t) for t in time if t.strip()])
                     wh_lines.append(f"{clean_text(day)} {time_str}".strip())
                 info["working_hours"] = "; ".join(wh_lines)
@@ -250,7 +276,7 @@ async def parse_house_from_2gis(city_url: str, search_query: str) -> Optional[di
         if is_direct:
             info = await parser.parse_address()
         elif results:
-            info = await parser.parse_address(results[0]['url'])
+            info = await parser.parse_address(results[0]["url"])
         else:
             info = None
 
@@ -262,8 +288,9 @@ async def parse_house_from_2gis(city_url: str, search_query: str) -> Optional[di
     return info
 
 
-
-async def parse_housing_office_from_2gis(city_url: str, org_name: str) -> Optional[dict]:
+async def parse_housing_office_from_2gis(
+    city_url: str, org_name: str
+) -> Optional[dict]:
     """
     Ищет организацию по названию в 2ГИС и возвращает инфо о первой ЖЭУ/УК/ТСЖ.
     """
@@ -272,7 +299,9 @@ async def parse_housing_office_from_2gis(city_url: str, org_name: str) -> Option
 
     try:
         await parser.page.goto(city_url)
-        await parser.page.wait_for_selector("input[placeholder='Поиск в 2ГИС']", timeout=10000)
+        await parser.page.wait_for_selector(
+            "input[placeholder='Поиск в 2ГИС']", timeout=10000
+        )
         await parser.page.fill("input[placeholder='Поиск в 2ГИС']", org_name)
         await parser.page.keyboard.press("Enter")
         await parser.page.wait_for_timeout(4000)
@@ -281,11 +310,21 @@ async def parse_housing_office_from_2gis(city_url: str, org_name: str) -> Option
         blocks = parser.page.locator("div._awwm2v div._1kf6gff")
         count = await blocks.count()
 
-        keywords = ["жэу", "жэк", "управляющая компания", "жилищно-коммунальные", "тсж", "дэз", "эксплуатация"]
+        keywords = [
+            "жэу",
+            "жэк",
+            "управляющая компания",
+            "жилищно-коммунальные",
+            "тсж",
+            "дэз",
+            "эксплуатация",
+        ]
 
         for i in range(count):
             type_elem = blocks.nth(i).locator("div._1idnaau span._oqoid").first
-            type_text = await type_elem.text_content() if await type_elem.count() else ""
+            type_text = (
+                await type_elem.text_content() if await type_elem.count() else ""
+            )
             if not any(k in (type_text or "").lower() for k in keywords):
                 continue
 
@@ -303,8 +342,8 @@ async def parse_housing_office_from_2gis(city_url: str, org_name: str) -> Option
     return None
 
 
-#if __name__ == '__main__':
-#    org_url = "https://2gis.ru/kazan" 
+# if __name__ == '__main__':
+#    org_url = "https://2gis.ru/kazan"
 #    org_name = "ЖЭК 38"
 #    result = asyncio.run(parse_housing_office_from_2gis(org_url, org_name))
 #    pp(result)

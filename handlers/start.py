@@ -1,17 +1,17 @@
 from aiogram import Router
-from aiogram.types import Message, CallbackQuery
 from aiogram.filters import CommandStart
+from aiogram.types import CallbackQuery, Message
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from db.db import async_session
-from db.crud.users import get_user_by_id, create_user
 from db.crud.roles import get_role_name
-
-from keyboards.inline import request_access_keyboard, build_main_menu
+from db.crud.users import create_user, get_user_by_id
+from db.db import async_session
+from keyboards.inline import build_main_menu, request_access_keyboard
 
 router = Router()
 
 NEWBIE_ROLE_ID = 50
+
 
 # Универсальная функция для старта
 async def process_start(user_id, full_name, username, send_func):
@@ -52,6 +52,7 @@ async def process_start(user_id, full_name, username, send_func):
                     "⚠️ Неизвестная роль. Пожалуйста, обратитесь к администратору."
                 )
 
+
 # Обычный старт по команде
 @router.message(CommandStart())
 async def handle_start(message: Message):
@@ -61,6 +62,7 @@ async def handle_start(message: Message):
         username=message.from_user.username,
         send_func=message.answer,
     )
+
 
 # Старт по callback (например, callback_data="start")
 @router.callback_query(lambda c: c.data == "start")
@@ -72,4 +74,3 @@ async def handle_start_callback(callback: CallbackQuery):
         send_func=callback.message.edit_text,
     )
     await callback.answer()  # чтобы убрать "часики" у кнопки
-
