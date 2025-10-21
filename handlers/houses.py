@@ -249,7 +249,6 @@ async def confirm_add_house(callback: CallbackQuery, state: FSMContext):
     await callback.answer()
 
 
-
 @router.callback_query(FindHouseFSM.confirming_add, F.data == "add_housing_office_confirm")
 async def confirm_add(callback: CallbackQuery, state: FSMContext):
     data = await state.get_data()
