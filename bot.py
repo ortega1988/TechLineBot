@@ -8,11 +8,13 @@ from aiogram.types import Message
 
 from config import *
 from handlers import register_all_routers
+from handlers.comments import router as comments_router
 
 bot = Bot(token=BOT_TOKEN, default=DefaultBotProperties(parse_mode=ParseMode.HTML))
 
 
 dp = Dispatcher()
+dp.include_router(comments_router)
 register_all_routers(dp)
 
 

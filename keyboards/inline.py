@@ -1,4 +1,12 @@
+from math import ceil
+
 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
+
+from db.crud.comments import (
+    count_entrance_comments,
+    count_flat_comments,
+    count_house_comments,
+)
 
 
 # Кнопка "Запросить доступ" (для роли 50)
@@ -117,8 +125,54 @@ def get_confirm_add_keyboard() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(inline_keyboard=keyboard)
 
 
-def get_list_houses_menu(
-    housing_office_id: int | None, house_id: int
+async def get_entrance_menu(entrance_id: int, session) -> InlineKeyboardMarkup:
+    keyboard = []
+    if await count_entrance_comments(session, entrance_id=entrance_id) > 0:
+        keyboard.append(
+            [
+                InlineKeyboardButton(
+                    text="💬 Просмотр комментариев",
+                    callback_data=f"view_comments_entrance:{entrance_id}",
+                )
+            ]
+        )
+    keyboard.append(
+        [
+            InlineKeyboardButton(
+                text="➕ Добавить комментарий",
+                callback_data=f"add_comment_entrance:{entrance_id}",
+            )
+        ]
+    )
+    keyboard.append([InlineKeyboardButton(text="↩️ Назад", callback_data="start")])
+    return InlineKeyboardMarkup(inline_keyboard=keyboard)
+
+
+async def get_flat_menu(house_id: int, flat_number: int, session) -> InlineKeyboardMarkup:
+    keyboard = []
+    if await count_flat_comments(session, house_id=house_id, flat_number=flat_number) > 0:
+        keyboard.append(
+            [
+                InlineKeyboardButton(
+                    text="💬 Просмотр комментариев",
+                    callback_data=f"view_comments_flat:{house_id}:{flat_number}",
+                )
+            ]
+        )
+    keyboard.append(
+        [
+            InlineKeyboardButton(
+                text="➕ Добавить комментарий",
+                callback_data=f"add_comment_flat:{house_id}:{flat_number}",
+            )
+        ]
+    )
+    keyboard.append([InlineKeyboardButton(text="↩️ Назад", callback_data="start")])
+    return InlineKeyboardMarkup(inline_keyboard=keyboard)
+
+
+async def get_list_houses_menu(
+    housing_office_id: int | None, house_id: int, session
 ) -> InlineKeyboardMarkup:
     keyboard = [
         [InlineKeyboardButton(text="ℹ️ Подробно", callback_data="house:details")],
@@ -133,6 +187,24 @@ def get_list_houses_menu(
                 )
             ]
         )
+
+    if await count_house_comments(session, house_id=house_id) > 0:
+        keyboard.append(
+            [
+                InlineKeyboardButton(
+                    text="💬 Просмотр комментариев",
+                    callback_data=f"view_comments_house:{house_id}",
+                )
+            ]
+        )
+    keyboard.append(
+        [
+            InlineKeyboardButton(
+                text="➕ Добавить комментарий",
+                callback_data=f"add_comment_house:{house_id}",
+            )
+        ]
+    )
     keyboard.append([InlineKeyboardButton(text="↩️ Назад", callback_data="start")])
     return InlineKeyboardMarkup(inline_keyboard=keyboard)
 
@@ -306,3 +378,48 @@ def get_setting_cities_keyboard(cities, current_city_id: int | None = None):
         )
     keyboard.append([InlineKeyboardButton(text="⬅️ Назад", callback_data="start")])
     return InlineKeyboardMarkup(inline_keyboard=keyboard)
+
+
+def get_comments_keyboard(
+    entity_type: str,
+    entity_id: int,
+    page: int,
+    total_comments: int,
+    item_id: int = 0,
+    limit: int = 10,
+) -> InlineKeyboardMarkup:
+    buttons = []
+    total_pages = ceil(total_comments / limit)
+
+    # Кнопки пагинации
+    pagination_buttons = []
+    if page > 1:
+        pagination_buttons.append(
+            InlineKeyboardButton(
+                text="⬅️",
+                callback_data=f"view_comments_{entity_type}:{entity_id}:{page - 1}",
+            )
+        )
+    if page < total_pages:
+        pagination_buttons.append(
+            InlineKeyboardButton(
+                text="➡️",
+                callback_data=f"view_comments_{entity_type}:{entity_id}:{page + 1}",
+            )
+        )
+    if pagination_buttons:
+        buttons.append(pagination_buttons)
+
+    # Кнопка "Назад"
+    back_callback = f"view_{entity_type}:{entity_id}"
+    if entity_type == "flat":
+        back_callback += f":{item_id}"
+    buttons.append(
+        [
+            InlineKeyboardButton(
+                text="↩️ Назад", callback_data=back_callback
+            )
+        ]
+    )
+
+    return InlineKeyboardMarkup(inline_keyboard=buttons)

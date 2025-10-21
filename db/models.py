@@ -311,3 +311,68 @@ class HousingOffice(Base):
             "name", "address", "city_id", "zone_id", name="uq_housing_office"
         ),
     )
+
+
+class HouseComment(Base):
+    __tablename__ = "house_comments"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    house_id: Mapped[int] = mapped_column(
+        Integer, ForeignKey("houses.id", ondelete="CASCADE"), nullable=False
+    )
+    user_id: Mapped[int] = mapped_column(
+        BigInteger, ForeignKey("users.id"), nullable=False
+    )
+    text: Mapped[str] = mapped_column(Text, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=msk_now)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime, default=msk_now, onupdate=msk_now
+    )
+
+    house = relationship("House", backref="comments")
+    user = relationship("User", backref="house_comments")
+
+
+class EntranceComment(Base):
+    __tablename__ = "entrance_comments"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    entrance_id: Mapped[int] = mapped_column(
+        Integer, ForeignKey("house_entrances.id", ondelete="CASCADE"), nullable=False
+    )
+    user_id: Mapped[int] = mapped_column(
+        BigInteger, ForeignKey("users.id"), nullable=False
+    )
+    text: Mapped[str] = mapped_column(Text, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=msk_now)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime, default=msk_now, onupdate=msk_now
+    )
+
+    entrance = relationship("HouseEntrance", backref="comments")
+    user = relationship("User", backref="entrance_comments")
+
+
+class FlatComment(Base):
+    __tablename__ = "flat_comments"
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    house_id: Mapped[int] = mapped_column(
+        Integer, ForeignKey("houses.id", ondelete="CASCADE"), nullable=False
+    )
+    entrance_id: Mapped[int] = mapped_column(
+        Integer,
+        ForeignKey("house_entrances.id", ondelete="CASCADE"),
+        nullable=True,
+    )
+    flat_number: Mapped[int] = mapped_column(Integer, nullable=False)
+    user_id: Mapped[int] = mapped_column(
+        BigInteger, ForeignKey("users.id"), nullable=False
+    )
+    text: Mapped[str] = mapped_column(Text, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=msk_now)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime, default=msk_now, onupdate=msk_now
+    )
+    house = relationship("House", backref="flat_comments")
+    entrance = relationship("HouseEntrance", backref="flat_comments")
+    user = relationship("User", backref="flat_comments")

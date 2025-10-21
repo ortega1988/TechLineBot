@@ -91,6 +91,52 @@ async def get_entrances_by_house(
     return result.all()
 
 
+async def get_entrance_by_id(session: AsyncSession, entrance_id: int) -> Optional[HouseEntrance]:
+    result = await session.execute(
+        select(HouseEntrance)
+        .where(HouseEntrance.id == entrance_id)
+        .options(selectinload(HouseEntrance.flats_ranges))
+    )
+    return result.scalar_one_or_none()
+
+
+async def get_flat_details(session: AsyncSession, house_id: int, flat_number: int) -> Optional[EntranceFlatsRange]:
+    stmt = (
+        select(EntranceFlatsRange)
+        .join(HouseEntrance)
+        .where(
+            HouseEntrance.house_id == house_id,
+            EntranceFlatsRange.start_flat <= flat_number,
+            EntranceFlatsRange.end_flat >= flat_number,
+        )
+        .options(selectinload(EntranceFlatsRange.entrance))
+    )
+    result = await session.execute(stmt)
+    return result.scalars().first()
+
+
+async def get_house_by_entrance_id(session: AsyncSession, entrance_id: int) -> Optional[House]:
+    stmt = select(House).join(HouseEntrance).where(HouseEntrance.id == entrance_id)
+    result = await session.execute(stmt)
+    return result.scalar_one_or_none()
+
+
+async def get_entrance_by_flat_number(
+    session: AsyncSession, house_id: int, flat_number: int
+) -> Optional[HouseEntrance]:
+    stmt = (
+        select(HouseEntrance)
+        .join(EntranceFlatsRange)
+        .where(
+            HouseEntrance.house_id == house_id,
+            EntranceFlatsRange.start_flat <= flat_number,
+            EntranceFlatsRange.end_flat >= flat_number,
+        )
+    )
+    result = await session.execute(stmt)
+    return result.scalars().first()
+
+
 async def set_housing_office_for_house(
     session: AsyncSession, house_id: int, housing_office_id: int
 ) -> Optional[House]:
