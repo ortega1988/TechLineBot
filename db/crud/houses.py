@@ -4,8 +4,9 @@ from typing import Optional
 from sqlalchemy import select
 from sqlalchemy.engine import ScalarResult
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
-from db.models import House, HouseEntrance
+from db.models import EntranceFlatsRange, House, HouseEntrance
 
 
 async def get_house_by_id(session: AsyncSession, house_id: int) -> Optional[House]:

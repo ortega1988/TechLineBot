@@ -22,6 +22,7 @@ from db.crud.housing_offices import (
 from db.crud.parsed_houses import get_house_parsed_view, save_parsed_house_to_db
 from db.crud.users import get_user_by_id, set_default_city_for_user
 from db.crud.zones import get_zones_by_area_and_city
+from db.crud.parsed_houses import save_parsed_house_to_db
 from db.db import async_session
 from fsm.states import AttachHousingOfficeFSM, FindHouseFSM
 from keyboards.inline import (
