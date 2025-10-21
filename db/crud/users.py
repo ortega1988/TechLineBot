@@ -94,3 +94,8 @@ async def set_default_city_for_user(
     if user:
         user.default_city_id = city_id
         await session.commit()
+
+
+async def get_users_by_role(session: AsyncSession, role_id: int) -> Sequence[User]:
+    result: Result = await session.execute(select(User).where(User.role_id == role_id))
+    return result.scalars().all()
