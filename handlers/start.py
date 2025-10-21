@@ -35,7 +35,7 @@ async def process_start(user_id, full_name, username, send_func):
                     "Пожалуйста, нажмите кнопку ниже, чтобы запросить доступ.",
                     reply_markup=request_access_keyboard(),
                 )
-            case _ if user.role_id in (0, 1, 2, 3):
+            case _ if user.role_id < 50:
                 await send_func(
                     f"👋 Добро пожаловать, {user.full_name}!\n"
                     f"Вы вошли как <b>{role_name}</b>.",
