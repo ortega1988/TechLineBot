@@ -213,6 +213,42 @@ async def input_address(message: Message, state: FSMContext):
         await state.set_state(FindHouseFSM.confirming_add)
 
 
+@router.callback_query(F.data == "confirm_add_house")
+async def confirm_add_house(callback: CallbackQuery, state: FSMContext):
+    user_id = callback.from_user.id
+    data = await state.get_data()
+    parsed = data.get("parsed_house")
+
+    if not parsed:
+        await callback.message.answer("⚠️ Данные не найдены. Повторите попытку.")
+        await state.clear()
+        await callback.answer()
+        return
+
+    async with async_session() as session:
+        house_id = await save_parsed_house_to_db(
+            session=session,
+            parsed_data={
+                "title": f"{parsed['street']} {parsed['house_number']}",
+                "floors": f"{parsed['floors']} этажей",
+                "entrances": f"{parsed['entrances']} подъездов",
+                "apartments": [
+                    f"{k} подъезд: квартиры {v}"
+                    for k, v in parsed["entrance_info"].items()
+                ],
+                "address": parsed.get("notes", "")
+            },
+            area_id=data["area_id"],
+            zone_id=parsed["zone_id"],
+            created_by=user_id,
+            notes=parsed.get("notes", "")
+        )
+
+    await callback.message.answer("✅ Дом успешно добавлен в базу данных!", reply_markup=get_list_houses_menu())
+    await state.clear()
+    await callback.answer()
+
+
 
 @router.callback_query(FindHouseFSM.confirming_add, F.data == "add_housing_office_confirm")
 async def confirm_add(callback: CallbackQuery, state: FSMContext):
