@@ -11,16 +11,10 @@ from db.models import City, EntranceFlatsRange, House, HouseEntrance, Zone
 
 def extract_house_meta(
     parsed_data: dict,
-) -> Tuple[str, str, int, int, Dict[int, List[Tuple[int, int]]]]:
-    title = parsed_data.get("title", "")
+) -> Tuple[int, int, Dict[int, List[Tuple[int, int]]]]:
     floors_text = parsed_data.get("floors", "")
     entrances_text = parsed_data.get("entrances", "")
     apartments_raw = parsed_data.get("apartments", [])
-
-    # Улица и номер
-    street_match = re.match(r"^(.*?)\s+(\S+)$", title)
-    street = street_match.group(1).strip() if street_match else title
-    house_number = street_match.group(2).strip() if street_match else ""
 
     # Этажи
     floors_match = re.search(r"(\d+)", floors_text)
@@ -41,7 +35,7 @@ def extract_house_meta(
                     start, end = int(flat_match.group(1)), int(flat_match.group(2))
                     entrances_info.setdefault(entrance, []).append((start, end))
 
-    return street, house_number, floors, entrances, entrances_info
+    return floors, entrances, entrances_info
 
 
 async def save_parsed_house_to_db(
@@ -50,11 +44,15 @@ async def save_parsed_house_to_db(
     area_id: str,
     zone_id: int,
     created_by: int,
+    street: str,
+    house_number: str,
     notes: Optional[str] = None,
 ) -> int:
-    street, house_number, floors, entrances_count, entrances_info = extract_house_meta(
-        parsed_data
-    )
+    (
+        floors,
+        entrances_count,
+        entrances_info,
+    ) = extract_house_meta(parsed_data)
 
     # Проверка на существующий дом
     stmt = select(House).where(

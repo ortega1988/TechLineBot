@@ -246,6 +246,8 @@ async def input_address(message: Message, state: FSMContext):
                 "zone_id": zone_obj.id if zone_obj else None,
                 "notes": "Добавлено с 2ГИС",
             },
+            street=parsed_street,
+            house_number=parsed_house_number,
         )
 
         await state.set_state(FindHouseFSM.confirming_add)
@@ -259,15 +261,19 @@ async def confirm_add(callback: CallbackQuery, state: FSMContext):
     parsed_house_data = data["parsed_house"]
     area_id = data["area_id"]
     zone_id = parsed_house_data["zone_id"]
+    street = data["street"]
+    house_number = data["house_number"]
     user_id = callback.from_user.id
 
     async with async_session() as session:
         await save_parsed_house_to_db(
-            session,
+            session=session,
             parsed_data=parsed_house_data,
             area_id=area_id,
             zone_id=zone_id,
             created_by=user_id,
+            street=street,
+            house_number=house_number,
             notes=parsed_house_data.get("notes"),
         )
 
